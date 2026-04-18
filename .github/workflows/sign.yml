@@ -1,0 +1,23 @@
+name: sign
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+jobs:
+  sign:
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Install cosign
+        run: |
+          curl -sL https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 \
+          -o /usr/local/bin/cosign
+          chmod +x /usr/local/bin/cosign
+
+      - name: Sign image (keyless)
+        run: |
+          cosign sign --yes ${{ inputs.image }}

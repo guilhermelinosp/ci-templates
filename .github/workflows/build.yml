@@ -22,9 +22,24 @@ jobs:
       - name: Define image
         id: meta
         run: |
-          IMAGE=registry-runner-test:local
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          IMAGE=${{ github.repository }}:local
+          CACHE=ghcr.io/${{ github.repository }}:buildcache
 
-      - name: Build image
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "cache=$CACHE" >> $GITHUB_OUTPUT
+
+      - name: Login GHCR
         run: |
-          docker build -t ${{ steps.meta.outputs.image }} .
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Setup buildx
+        run: |
+          docker buildx create --use || true
+
+      - name: Build with registry cache
+        run: |
+          docker buildx build \
+            --load \
+            --cache-from=type=registry,ref=${{ steps.meta.outputs.cache }} \
+            --cache-to=type=registry,ref=${{ steps.meta.outputs.cache }},mode=max \
+            -t ${{ steps.meta.outputs.image }} .

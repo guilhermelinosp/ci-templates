@@ -18,3 +18,9 @@ jobs:
     uses: guilhermelinosp/ci-templates/.github/workflows/push.yml@v1
     with:
       image: ${{ needs.build.outputs.image }}
+
+  sign:
+    needs: promote
+    uses: guilhermelinosp/ci-templates/.github/workflows/sign.yml@v1
+    with:
+      image: ghcr.io/${{ github.repository }}:latest
