@@ -9,7 +9,7 @@ on:
 
 jobs:
   sign:
-    runs-on: [self-hosted, linux]
+    runs-on: [ self-hosted, linux ]
 
     steps:
       - name: Install cosign
@@ -18,6 +18,6 @@ jobs:
           -o /usr/local/bin/cosign
           chmod +x /usr/local/bin/cosign
 
-      - name: Sign image (keyless)
+      - name: Sign image
         run: |
           cosign sign --yes ${{ inputs.image }}

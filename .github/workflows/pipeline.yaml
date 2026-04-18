@@ -14,7 +14,7 @@ jobs:
       image: ${{ needs.build.outputs.image }}
 
   promote:
-    needs: [build, scan]
+    needs: [ build, scan ]
     uses: guilhermelinosp/ci-templates/.github/workflows/push.yml@v1
     with:
       image: ${{ needs.build.outputs.image }}

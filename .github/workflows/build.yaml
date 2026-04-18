@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, linux]
+    runs-on: [ self-hosted, linux ]
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -23,10 +23,7 @@ jobs:
         id: meta
         run: |
           IMAGE=${{ github.repository }}:local
-          CACHE=ghcr.io/${{ github.repository }}:buildcache
-
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
-          echo "cache=$CACHE" >> $GITHUB_OUTPUT
 
       - name: Login GHCR
         run: |
@@ -35,11 +32,12 @@ jobs:
       - name: Setup buildx
         run: |
           docker buildx create --use || true
+          docker buildx inspect --bootstrap
 
       - name: Build with registry cache
         run: |
           docker buildx build \
             --load \
-            --cache-from=type=registry,ref=${{ steps.meta.outputs.cache }} \
-            --cache-to=type=registry,ref=${{ steps.meta.outputs.cache }},mode=max \
+            --cache-from=type=registry,ref=ghcr.io/${{ github.repository }}:cache \
+            --cache-to=type=registry,ref=ghcr.io/${{ github.repository }}:cache,mode=max \
             -t ${{ steps.meta.outputs.image }} .

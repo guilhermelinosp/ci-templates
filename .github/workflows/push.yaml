@@ -9,7 +9,7 @@ on:
 
 jobs:
   push:
-    runs-on: [self-hosted, linux]
+    runs-on: [ self-hosted, linux ]
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
