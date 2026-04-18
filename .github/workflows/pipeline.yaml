@@ -10,4 +10,4 @@ permissions:
 
 jobs:
   release:
-    uses: ./ci-templates/.github/workflows/release.yaml
+    uses: ./.github/workflows/release.yaml
