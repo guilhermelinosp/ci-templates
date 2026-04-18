@@ -2,27 +2,31 @@ name: release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [ main ]
 
 permissions:
   contents: write
 
 jobs:
-  update-major:
+  release:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get version
+      - name: Generate version
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          MAJOR=$(echo $VERSION | cut -d. -f1)
+          VERSION=v1.0.${{ github.run_number }}
+          MAJOR=v1
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major=$MAJOR" >> $GITHUB_OUTPUT
+
+      - name: Create version tag
+        run: |
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
 
       - name: Update major tag
         run: |
