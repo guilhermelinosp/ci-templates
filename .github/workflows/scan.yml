@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@0.35.0
-        with:
-          image-ref: ${{ inputs.image }}
-          exit-code: 1
-          severity: CRITICAL,HIGH
+      - name: Run Trivy scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest \
+            image --severity CRITICAL,HIGH --exit-code 1 ${{ inputs.image }}

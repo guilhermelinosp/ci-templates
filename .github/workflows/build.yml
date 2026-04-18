@@ -25,8 +25,7 @@ jobs:
       - name: Define image
         id: meta
         run: |
-          IMAGE=ghcr.io/${{ inputs.image_name }}:${{ github.sha }}
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/${{ inputs.image_name }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Login GHCR
         run: |

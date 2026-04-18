@@ -1,4 +1,4 @@
-name: push
+name: promote
 
 on:
   workflow_call:
@@ -21,8 +21,8 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Retag and push
+      - name: Promote image
         run: |
           docker pull ${{ inputs.image }}
-          docker tag ${{ inputs.image }} ghcr.io/${{ inputs.final_tag }}
-          docker push ghcr.io/${{ inputs.final_tag }}
+          docker tag ${{ inputs.image }} ${{ inputs.final_tag }}
+          docker push ${{ inputs.final_tag }}
