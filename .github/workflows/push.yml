@@ -10,18 +10,11 @@ on:
 jobs:
   push:
     runs-on: [self-hosted, linux]
-    permissions:
-      contents: read
-      packages: write
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Validate input
-        run: |
-          if [ -z "${{ inputs.image }}" ]; then
-            echo "ERROR: image input is empty"
-            exit 1
-          fi
-
       - name: Login GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
