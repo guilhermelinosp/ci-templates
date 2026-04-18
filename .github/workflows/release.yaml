@@ -2,11 +2,14 @@ name: release
 
 on:
   workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
 
 jobs:
   release:
     runs-on: [ self-hosted, linux ]
-    if: github.ref_type != 'tag'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,5 +24,16 @@ jobs:
 
       - name: Create version tag
         run: |
-          git tag -a "${{ needs.build.outputs.version }}" -m "Release ${{ needs.build.outputs.version }}" > /dev/null 2>&1
-          git push origin "${{ needs.build.outputs.version }}" > /dev/null 2>&1 || true
+          # Prefer explicit input version from caller. If not provided, derive a sensible default.
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            if [[ "${{ github.ref_type }}" == "tag" ]]; then
+              VERSION="${{ github.ref_name }}"
+            else
+              VERSION="v1.0.${{ github.run_number }}"
+            fi
+          fi
+
+          git tag -a "$VERSION" -m "Release $VERSION" > /dev/null 2>&1
+          git push origin "$VERSION" > /dev/null 2>&1 || true
