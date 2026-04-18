@@ -6,9 +6,6 @@ on:
       image:
         required: true
         type: string
-      final_tag:
-        required: true
-        type: string
 
 jobs:
   push:
@@ -17,12 +14,32 @@ jobs:
       packages: write
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Read config
+        id: config
+        run: |
+          IMAGE_NAME=$(grep '^image:' .ci/config.yml | awk '{print $2}')
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Validate input
+        run: |
+          if [ -z "${{ inputs.image }}" ]; then
+            echo "ERROR: image input is empty"
+            exit 1
+          fi
+
+      - name: Debug image
+        run: echo "IMAGE=${{ inputs.image }}"
+
       - name: Login GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Promote image
         run: |
+          TARGET=ghcr.io/${{ github.repository_owner }}/${{ steps.config.outputs.image_name }}:latest
+
           docker pull ${{ inputs.image }}
-          docker tag ${{ inputs.image }} ${{ inputs.final_tag }}
-          docker push ${{ inputs.final_tag }}
+          docker tag ${{ inputs.image }} $TARGET
+          docker push $TARGET

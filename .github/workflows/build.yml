@@ -2,10 +2,6 @@ name: build
 
 on:
   workflow_call:
-    inputs:
-      image_name:
-        required: true
-        type: string
     outputs:
       image:
         value: ${{ jobs.build.outputs.image }}
@@ -22,10 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read config
+        id: config
+        run: |
+          IMAGE_NAME=$(grep '^image:' .ci/config.yml | awk '{print $2}')
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
       - name: Define image
         id: meta
         run: |
-          echo "image=ghcr.io/${{ inputs.image_name }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ steps.config.outputs.image_name }}:${{ github.sha }}
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Debug image
+        run: echo "IMAGE=${{ steps.meta.outputs.image }}"
 
       - name: Login GHCR
         run: |

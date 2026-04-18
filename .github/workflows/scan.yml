@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug image input
+        run: echo "IMAGE=${{ inputs.image }}"
+
       - name: Run Trivy scan
         run: |
           docker run --rm \
