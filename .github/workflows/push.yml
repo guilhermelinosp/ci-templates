@@ -9,19 +9,12 @@ on:
 
 jobs:
   push:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
+      contents: read
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Read config
-        id: config
-        run: |
-          IMAGE_NAME=$(grep '^image:' .ci/config.yml | awk '{print $2}')
-          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
-
       - name: Validate input
         run: |
           if [ -z "${{ inputs.image }}" ]; then
@@ -29,17 +22,22 @@ jobs:
             exit 1
           fi
 
-      - name: Debug image
-        run: echo "IMAGE=${{ inputs.image }}"
-
       - name: Login GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Promote image
         run: |
-          TARGET=ghcr.io/${{ github.repository_owner }}/${{ steps.config.outputs.image_name }}:latest
+          IMAGE=${{ inputs.image }}
+          IMAGE_BASE=ghcr.io/${{ github.repository }}
 
-          docker pull ${{ inputs.image }}
-          docker tag ${{ inputs.image }} $TARGET
-          docker push $TARGET
+          docker pull $IMAGE
+
+          docker tag $IMAGE $IMAGE_BASE:latest
+          docker push $IMAGE_BASE:latest
+
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            docker tag $IMAGE $IMAGE_BASE:$VERSION
+            docker push $IMAGE_BASE:$VERSION
+          fi

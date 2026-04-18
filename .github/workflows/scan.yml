@@ -9,13 +9,12 @@ on:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
 
     steps:
-      - name: Debug image input
-        run: echo "IMAGE=${{ inputs.image }}"
-
-      - name: Run Trivy scan
+      - name: Run Trivy
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
