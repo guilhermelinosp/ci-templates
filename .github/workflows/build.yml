@@ -1,0 +1,38 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+    outputs:
+      image:
+        value: ${{ jobs.build.outputs.image }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Define image
+        id: meta
+        run: |
+          IMAGE=ghcr.io/${{ inputs.image_name }}:${{ github.sha }}
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build & push (temp)
+        run: |
+          docker build -t $IMAGE .
+          docker push $IMAGE

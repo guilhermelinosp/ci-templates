@@ -1,0 +1,20 @@
+name: scan
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: ${{ inputs.image }}
+          exit-code: 1
+          severity: CRITICAL,HIGH
