@@ -9,23 +9,6 @@ permissions:
   packages: write
 
 jobs:
-  prepare-version:
-    runs-on: [ self-hosted, linux ]
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Generate version
-        id: version
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            VERSION="v1.0.${{ github.run_number }}"
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
   release:
-    needs: prepare-version
-    uses: ./.github/workflows/release.yaml
-    with:
-      version: ${{ needs.prepare-version.outputs.version }}
+    needs: sign
+    uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
