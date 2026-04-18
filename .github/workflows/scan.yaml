@@ -9,10 +9,7 @@ on:
 
 jobs:
   scan:
-    runs-on: [self-hosted, linux]
-
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: [ self-hosted, linux ]
 
     steps:
       - name: Scan image (Trivy)
