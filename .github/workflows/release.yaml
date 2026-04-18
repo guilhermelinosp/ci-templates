@@ -47,3 +47,9 @@ jobs:
           echo "Creating tag: $VERSION"
           git tag -a "$VERSION" -m "Release $VERSION"
           git push origin "$VERSION" || true
+
+          # Update lightweight 'latest' tag to point to this version's commit
+          TARGET_COMMIT=$(git rev-parse "$VERSION")
+          echo "Updating 'latest' tag to point to $TARGET_COMMIT"
+          git tag -f latest "$TARGET_COMMIT"
+          git push --force origin refs/tags/latest || true
