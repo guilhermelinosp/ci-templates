@@ -5,22 +5,22 @@ on:
 
 jobs:
   build:
-    uses: guilhermelinosp/ci-templates/.github/workflows/build.yml@v1
+    uses: guilhermelinosp/ci-templates/.github/workflows/build.yaml@v1
 
   scan:
     needs: build
-    uses: guilhermelinosp/ci-templates/.github/workflows/scan.yml@v1
+    uses: guilhermelinosp/ci-templates/.github/workflows/scan.yaml@v1
     with:
       image: ${{ needs.build.outputs.image }}
 
   promote:
     needs: [ build, scan ]
-    uses: guilhermelinosp/ci-templates/.github/workflows/push.yml@v1
+    uses: guilhermelinosp/ci-templates/.github/workflows/push.yaml@v1
     with:
       image: ${{ needs.build.outputs.image }}
 
   sign:
     needs: promote
-    uses: guilhermelinosp/ci-templates/.github/workflows/sign.yml@v1
+    uses: guilhermelinosp/ci-templates/.github/workflows/sign.yaml@v1
     with:
       image: ghcr.io/${{ github.repository }}:latest
