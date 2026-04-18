@@ -24,8 +24,6 @@ jobs:
           IMAGE=${{ inputs.image }}
           IMAGE_BASE=ghcr.io/${{ github.repository }}
 
-          docker pull $IMAGE
-
           docker tag $IMAGE $IMAGE_BASE:latest
           docker push $IMAGE_BASE:latest
 
