@@ -1,37 +1,25 @@
-name: pipeline
+name: release
 
 on:
-  push:
-    branches: [ main ]
-    tags:
-      - "v*"
-
-permissions:
-  contents: read
-  packages: write
+  workflow_call:
 
 jobs:
   release:
     runs-on: [ self-hosted, linux ]
+    if: github.ref_type != 'tag'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate version
-        id: version
+      - name: Configure Git
         run: |
-          VERSION=v1.0.${{ github.run_number }}
-          MAJOR=v1
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          git config user.name "github-actions[bot]" > /dev/null 2>&1
+          git config user.email "github-actions[bot]@users.noreply.github.com" > /dev/null 2>&1
 
       - name: Create version tag
         run: |
-          git tag ${{ steps.version.outputs.version }}
-          git push origin ${{ steps.version.outputs.version }}
-
-      - name: Update major tag
-        run: |
-          git tag -f ${{ steps.version.outputs.major }}
-          git push origin ${{ steps.version.outputs.major }} --force
+          git tag -a "${{ needs.build.outputs.version }}" -m "Release ${{ needs.build.outputs.version }}" > /dev/null 2>&1
+          git push origin "${{ needs.build.outputs.version }}" > /dev/null 2>&1 || true

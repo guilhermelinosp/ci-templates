@@ -1,26 +1,13 @@
 name: pipeline
 
 on:
-  workflow_call:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  build:
-    uses: guilhermelinosp/ci-templates/.github/workflows/build.yaml@v1
-
-  scan:
-    needs: build
-    uses: guilhermelinosp/ci-templates/.github/workflows/scan.yaml@v1
-    with:
-      image: ${{ needs.build.outputs.image }}
-
-  promote:
-    needs: [ build, scan ]
-    uses: guilhermelinosp/ci-templates/.github/workflows/push.yaml@v1
-    with:
-      image: ${{ needs.build.outputs.image }}
-
-  sign:
-    needs: promote
-    uses: guilhermelinosp/ci-templates/.github/workflows/sign.yaml@v1
-    with:
-      image: ghcr.io/${{ github.repository }}:latest
+  release:
+    uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@v1.0.0
