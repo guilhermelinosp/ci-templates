@@ -54,3 +54,58 @@ jobs:
           echo "Updating 'latest' tag to point to $TARGET_COMMIT"
           git tag -f latest "$TARGET_COMMIT"
           git push --force origin refs/tags/latest || true
+
+      - name: Update VERSION file on master
+        run: |
+          set -euo pipefail
+
+          # Ensure we have the latest refs for master
+          if git ls-remote --exit-code --heads origin master >/dev/null 2>&1; then
+            git fetch origin master
+            git checkout -B master origin/master
+          else
+            # No master branch on remote yet; create it from current HEAD
+            git checkout -B master
+          fi
+
+          echo "$VERSION" > VERSION
+
+          # Commit only if changed
+          if git diff --quiet -- VERSION; then
+            echo "VERSION unchanged; nothing to commit"
+          else
+            git add VERSION
+            git commit -m "chore(release): update VERSION to $VERSION"
+            git push origin master
+
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not available in runner; cannot create GitHub Release" >&2
+            exit 0
+          fi
+
+          # Authenticate gh with the provided token
+          echo "${GITHUB_TOKEN}" | gh auth login --with-token >/dev/null 2>&1 || true
+
+          # Determine previous tag (if any) to build changelog
+          PREV_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | awk -v v="$VERSION" '$0!=v{print; exit}') || true
+
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' ${PREV_TAG}..${VERSION} || true)
+          else
+            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' -n 50 ${VERSION} || true)
+          fi
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Updating existing release $VERSION"
+            gh release edit "$VERSION" --title "$VERSION" --notes "$NOTES" || true
+          else
+            echo "Creating release $VERSION"
+            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" || true
+          fi
+          fi
