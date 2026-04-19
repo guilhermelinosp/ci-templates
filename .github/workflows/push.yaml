@@ -7,6 +7,9 @@ on:
         required: true
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   push:
     runs-on: [ self-hosted, linux ]
@@ -16,9 +19,9 @@ jobs:
       cancel-in-progress: true
 
     steps:
-      - name: Login GHCR
+      - name: Pull SHA-tagged image
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull ${{ inputs.image }}
 
       - name: Promote image
         run: |

@@ -1,0 +1,18 @@
+name: login
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  login:
+    runs-on: [ self-hosted, linux ]
+    steps:
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

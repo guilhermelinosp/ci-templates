@@ -1,0 +1,48 @@
+name: buildx
+
+on:
+  workflow_call:
+    outputs:
+      image:
+        value: ${{ jobs.build.outputs.image }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  buildx:
+    runs-on: [ self-hosted, linux ]
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Define image
+        id: meta
+        run: |
+          REPO=${{ github.repository }}
+          SHORT_SHA=${GITHUB_SHA::7}
+          IMAGE=ghcr.io/${REPO}:${SHORT_SHA}
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Setup buildx
+        run: |
+          docker buildx create --use || true
+          docker buildx inspect --bootstrap
+
+      - name: Build with registry cache
+        run: |
+          docker buildx use ci-builder || true
+          docker buildx build \
+            --load \
+            --cache-from=type=registry,ref=ghcr.io/${{ github.repository }}:cache \
+            --cache-to=type=registry,ref=ghcr.io/${{ github.repository }}:cache,mode=max,compress=true \
+            -t ${{ steps.meta.outputs.image }} .
+
+      - name: Push SHA-tagged image to GHCR
+        run: |
+          docker push ${{ steps.meta.outputs.image }}

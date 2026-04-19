@@ -1,4 +1,4 @@
-name: build
+name: buildx
 
 on:
   workflow_call:
@@ -6,38 +6,38 @@ on:
       image:
         value: ${{ jobs.build.outputs.image }}
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: [ self-hosted, linux ]
-
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     outputs:
       image: ${{ steps.meta.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Define image
-        id: meta
+      - name: Generate version
+        id: version
         run: |
-          IMAGE=${{ github.repository }}:local
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="v1.0.${{ github.run_number }}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Login GHCR
+      - name: Build image
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build -t ghcr.io/${{ github.repository }}:latest \
+                       -t ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} \
+                       . --quiet
 
-      - name: Setup buildx
+      - name: Push image
         run: |
-          docker buildx create --use || true
-          docker buildx inspect --bootstrap
-
-      - name: Build with registry cache
-        run: |
-          docker buildx build \
-            --load \
-            --cache-from=type=registry,ref=ghcr.io/${{ github.repository }}:cache \
-            --cache-to=type=registry,ref=ghcr.io/${{ github.repository }}:cache,mode=max \
-            -t ${{ steps.meta.outputs.image }} .
+          docker push ghcr.io/${{ github.repository }}:latest > /dev/null 2>&1
+          docker push ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} > /dev/null 2>&1

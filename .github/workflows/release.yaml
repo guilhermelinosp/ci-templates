@@ -2,6 +2,14 @@ name: release
 
 on:
   workflow_call:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   release:
@@ -20,8 +28,6 @@ jobs:
 
       - name: Create version tag
         run: |
-          # Automatic versioning: if the workflow was triggered by a tag, use it.
-          # Otherwise determine the latest semver tag (vMAJOR.MINOR.PATCH) and bump the patch.
           set -euo pipefail
 
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
@@ -30,7 +36,6 @@ jobs:
             # Ensure we have tags
             git fetch --tags || true
 
-            # Find latest semver tag starting with 'v'
             LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1 || true)
 
             if [ -z "$LATEST_TAG" ]; then
@@ -48,7 +53,6 @@ jobs:
           git tag -a "$VERSION" -m "Release $VERSION"
           git push origin "$VERSION" || true
 
-          # Update lightweight 'latest' tag to point to this version's commit
           TARGET_COMMIT=$(git rev-parse "$VERSION")
           echo "Updating 'latest' tag to point to $TARGET_COMMIT"
           git tag -f latest "$TARGET_COMMIT"

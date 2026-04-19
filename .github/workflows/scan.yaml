@@ -7,14 +7,76 @@ on:
         required: true
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   scan:
     runs-on: [ self-hosted, linux ]
 
     steps:
+      - name: Get latest Trivy version
+        id: trivy_info
+        run: |
+          TRIVY_VERSION=$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep '"tag_name":' | sed -E 's/.*"tag_name": "v?([^\"]+)".*/\1/')
+          if [ -z "$TRIVY_VERSION" ]; then
+            echo "Failed to discover Trivy version" >&2
+            exit 1
+          fi
+          echo "trivy_version=$TRIVY_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compute Dockerfile hash
+        id: dockerfile_hash
+        run: |
+          if [ -f Dockerfile ]; then
+            H=$(sha256sum Dockerfile | cut -c1-7)
+          else
+            H=no-dockerfile
+          fi
+          echo "dockerfile_hash=$H" >> $GITHUB_OUTPUT
+
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: .trivycache
+          key: trivy-db-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-${{ steps.dockerfile_hash.outputs.dockerfile_hash }}-v1
+          restore-keys: |
+            trivy-db-${{ runner.os }}-
+
+      - name: Cache Trivy binary
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.trivybin
+          key: trivy-bin-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-v1
+          restore-keys: |
+            trivy-bin-${{ runner.os }}-
+
+      - name: Install Trivy binary
+        run: |
+          TRIVY_VERSION=${{ steps.trivy_info.outputs.trivy_version }}
+          mkdir -p ${{ github.workspace }}/.trivybin
+          if [ -f ${{ github.workspace }}/.trivybin/trivy ]; then
+            echo "Using cached Trivy binary"
+          else
+            echo "Downloading Trivy v${TRIVY_VERSION}"
+            curl -sfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar -xz -C ${{ github.workspace }}/.trivybin trivy
+            chmod +x ${{ github.workspace }}/.trivybin/trivy
+          fi
+          echo "${{ github.workspace }}/.trivybin" >> $GITHUB_PATH
+
+      - name: Ensure Trivy DB
+        run: |
+          mkdir -p .trivycache
+          trivy --cache-dir ${{ github.workspace }}/.trivycache --download-db-only || true
+
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull image
+        run: |
+          docker pull ${{ inputs.image }}
+
       - name: Scan image (Trivy)
         run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest \
-            image --severity CRITICAL,HIGH --exit-code 1 ${{ inputs.image }}
+          trivy image --cache-dir ${{ github.workspace }}/.trivycache --severity CRITICAL,HIGH --exit-code 1 ${{ inputs.image }}
