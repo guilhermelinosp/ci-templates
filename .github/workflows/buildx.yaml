@@ -31,7 +31,12 @@ jobs:
 
       - name: Setup buildx
         run: |
-          docker buildx create --use || true
+          # Create a persistent builder named 'ci-builder' if it doesn't exist
+          if ! docker buildx inspect ci-builder >/dev/null 2>&1; then
+            docker buildx create --name ci-builder --driver docker-container --use
+          else
+            docker buildx use ci-builder || true
+          fi
           docker buildx inspect --bootstrap
 
       - name: Build with registry cache
