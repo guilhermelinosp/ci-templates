@@ -29,9 +29,12 @@ jobs:
           IMAGE=ghcr.io/${REPO}:${SHORT_SHA}
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
+      - name: Check buildx version
+        run: |
+          docker buildx version
+
       - name: Setup buildx
         run: |
-          # Create a persistent builder named 'ci-builder' if it doesn't exist
           if ! docker buildx inspect ci-builder >/dev/null 2>&1; then
             docker buildx create --name ci-builder --driver docker-container --use
           else
