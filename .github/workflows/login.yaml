@@ -3,10 +3,6 @@ name: login
 on:
   workflow_call:
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
   login:
     runs-on: [ self-hosted, linux ]
