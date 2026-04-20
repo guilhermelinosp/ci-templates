@@ -11,7 +11,17 @@ jobs:
   sign:
     runs-on: [ self-hosted, linux ]
 
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
     steps:
+      - name: Authenticate to GHCR
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Validate input
         run: |
           set -euo pipefail
@@ -25,30 +35,21 @@ jobs:
 
           if [[ "$IMAGE" != *@sha256:* ]]; then
             echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
-            echo "Received: $IMAGE" >&2
             exit 1
           fi
 
-      - name: Debug image (optional)
-        run: |
-          echo "Signing image: ${{ inputs.image }}"
-
-      - name: Sign image (cosign OIDC)
+      - name: Sign image
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
-
-          cosign sign \
-            --yes \
-            "${{ inputs.image }}"
+          cosign sign --yes "${{ inputs.image }}"
 
       - name: Attest provenance
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
-
           cosign attest \
             --yes \
             --type slsaprovenance \
