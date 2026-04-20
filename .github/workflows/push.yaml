@@ -29,20 +29,14 @@ jobs:
           echo "::add-mask::${{ secrets.GITHUB_TOKEN }}"
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Validate inputs
+      - name: Validate input
         run: |
           set -euo pipefail
 
           IMAGE="${{ inputs.image }}"
-          VERSION="${{ inputs.version }}"
 
           if [[ "$IMAGE" != *@sha256:* ]]; then
-            echo "Input image must be a digest (ghcr.io/...@sha256:...)" >&2
-            exit 1
-          fi
-
-          if [[ -z "$VERSION" ]]; then
-            echo "Version cannot be empty" >&2
+            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
             exit 1
           fi
 

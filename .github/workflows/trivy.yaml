@@ -24,12 +24,16 @@ jobs:
           fi
 
       - name: Scan image (SARIF)
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
           IMAGE="${{ inputs.image }}"
 
           trivy image \
+            --scanners vuln \
             --severity HIGH,CRITICAL \
             --ignore-unfixed \
             --format sarif \
