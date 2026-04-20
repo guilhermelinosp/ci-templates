@@ -11,6 +11,11 @@ jobs:
   sign:
     runs-on: [ self-hosted, linux ]
 
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
     steps:
       - name: Authenticate to GHCR
         run: |
@@ -34,9 +39,13 @@ jobs:
             exit 1
           fi
 
-      - name: Sign image
+      - name: Sign image (OCI referrers mode)
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
-          cosign sign --yes "${{ inputs.image }}"
+
+          cosign sign \
+            --yes \
+            --registry-referrers-mode=oci-1-1 \
+            "${{ inputs.image }}"
