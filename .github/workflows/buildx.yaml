@@ -29,7 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE_NAME=$(yq '.image' ./config.yaml)
-          IMAGE=ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${GITHUB_SHA::7}
+
+          # Tag descartável (não usada em produção)
+          IMAGE=ghcr.io/${{ github.actor }}/${IMAGE_NAME}:build
 
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
