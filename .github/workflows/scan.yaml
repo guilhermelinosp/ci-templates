@@ -19,16 +19,17 @@ jobs:
         with:
           ghcr-pat: ${{ secrets.GHCR_PAT }}
 
-      - name: Get latest Trivy version
-      - name: Get latest Trivy version
+      - name: Set Trivy version
         id: trivy_info
         run: |
-          TRIVY_VERSION=$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep '"tag_name":' | sed -E 's/.*"tag_name": "v?([^\"]+)".*/\1/')
-          if [ -z "$TRIVY_VERSION" ]; then
-            echo "Failed to discover Trivy version" >&2
-            exit 1
+          set -euo pipefail
+          # Prefer trivy installed in the runner image; otherwise fallback to unknown
+          if command -v trivy >/dev/null 2>&1; then
+            TRIVY_VERSION=$(trivy --version 2>/dev/null | head -n1 | grep -oE '[0-9]+(\.[0-9]+)+') || TRIVY_VERSION=unknown
+          else
+            TRIVY_VERSION=unknown
           fi
-          echo "trivy_version=$TRIVY_VERSION" >> $GITHUB_OUTPUT
+          echo "trivy_version=${TRIVY_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Compute Dockerfile hash
         id: dockerfile_hash
@@ -44,35 +45,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .trivycache
-          key: trivy-db-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-${{
-            steps.dockerfile_hash.outputs.dockerfile_hash }}-v1
+          key: trivy-db-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-${{ steps.dockerfile_hash.outputs.dockerfile_hash }}-v1
           restore-keys: |
             trivy-db-${{ runner.os }}-
-
-      - name: Cache Trivy binary
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.trivybin
-          key: trivy-bin-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-v1
-          restore-keys: |
-            trivy-bin-${{ runner.os }}-
-
-      - name: Install Trivy binary
-        run: |
-          TRIVY_VERSION=${{ steps.trivy_info.outputs.trivy_version }}
-          mkdir -p ${{ github.workspace }}/.trivybin
-          if [ -f ${{ github.workspace }}/.trivybin/trivy ]; then
-            echo "Using cached Trivy binary"
-          else
-            echo "Downloading Trivy v${TRIVY_VERSION}"
-            curl -sfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar -xz -C ${{ github.workspace }}/.trivybin trivy
-            chmod +x ${{ github.workspace }}/.trivybin/trivy
-          fi
-          echo "${{ github.workspace }}/.trivybin" >> $GITHUB_PATH
 
       - name: Ensure Trivy DB
         run: |
           mkdir -p .trivycache
+          # Use trivy from the runner image
           trivy --cache-dir ${{ github.workspace }}/.trivycache --download-db-only || true
 
       # Login centralizado já realizado acima pelo action composto
