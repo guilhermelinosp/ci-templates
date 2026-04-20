@@ -71,7 +71,7 @@ jobs:
 
           echo "image=$FINAL_IMAGE" >> $GITHUB_OUTPUT
 
-      - name: Scan image (blocking)
+      - name: Scan image (generate report)
         run: |
           set -euo pipefail
 
@@ -79,6 +79,28 @@ jobs:
 
           trivy image \
             --severity HIGH,CRITICAL \
-            --exit-code 1 \
             --ignore-unfixed \
+            --format json \
+            --output trivy-report.json \
+            --no-progress \
+            "$IMAGE"
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+
+      - name: Enforce scan (fail on vuln)
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ steps.export.outputs.image }}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --quiet \
+            --no-progress \
+            --exit-code 1 \
             "$IMAGE"
