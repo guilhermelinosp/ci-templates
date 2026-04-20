@@ -19,7 +19,8 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: guilhermelinosp/ci-templates/.github/workflows/login.yaml@latest
+      - name: Login GHCR and authenticate gh
+        uses: guilhermelinosp/ci-templates/.github/workflows/login.yaml@latest
 
       - name: Define image
         id: meta
