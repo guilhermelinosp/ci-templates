@@ -68,5 +68,3 @@ jobs:
           if [ -n "$SHA_TAG" ]; then
             docker rmi "$DST:$SHA_TAG" || true
           fi
-
-          echo "Promoted $SRC to $DST:latest and $DST:$VERSION"
