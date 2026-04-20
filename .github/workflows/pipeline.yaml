@@ -16,4 +16,5 @@ jobs:
     uses: guilhermelinosp/ci-templates/.github/workflows/login.yaml@latest
 
   release:
+    needs: login
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
