@@ -33,11 +33,12 @@ jobs:
         run: |
           docker pull ${{ inputs.image }}
 
-      - name: Promote image
+      - name: Promote image (latest e versão)
         run: |
           IMAGE=${{ inputs.image }}
           IMAGE_BASE=ghcr.io/${{ github.repository }}
 
+          # Tag e push apenas as tags desejadas
           docker tag $IMAGE $IMAGE_BASE:latest
           docker push $IMAGE_BASE:latest
 
@@ -45,8 +46,7 @@ jobs:
             VERSION="${{ inputs.version }}"
             docker tag $IMAGE $IMAGE_BASE:$VERSION
             docker push $IMAGE_BASE:$VERSION
-          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-            docker tag $IMAGE $IMAGE_BASE:$VERSION
-            docker push $IMAGE_BASE:$VERSION
           fi
+
+          # Remove a imagem SHA localmente (opcional, não remove do GHCR)
+          docker rmi $IMAGE || true
