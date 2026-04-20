@@ -10,51 +10,59 @@ jobs:
   buildx:
     runs-on: [ self-hosted, linux ]
 
+    permissions:
+      contents: read
+      packages: write
+
     outputs:
       image: ${{ steps.meta.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Authenticate to GHCR
         run: |
           set -euo pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Define image
+      - name: Define image (tag temporária)
         id: meta
         run: |
           REPO=${{ github.repository }}
           SHORT_SHA=${GITHUB_SHA::7}
           IMAGE=ghcr.io/${REPO}:${SHORT_SHA}
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
-
-      - name: Check buildx version
-        run: |
-          docker buildx version
+          echo "tag=$IMAGE" >> $GITHUB_OUTPUT
 
       - name: Setup buildx
         run: |
-          if ! docker buildx inspect ci-builder >/dev/null 2>&1; then
-            docker buildx create --name ci-builder --driver docker-container --use
-          else
-            docker buildx use ci-builder || true
-          fi
+          set -euo pipefail
+          docker buildx create --name ci-builder --driver docker-container --use || docker buildx use ci-builder
           docker buildx inspect --bootstrap
 
-      - name: Build with registry cache
+      - name: Build and push
+        id: build
         run: |
-          docker buildx use ci-builder || true
+          set -euo pipefail
+
+          IMAGE=${{ steps.meta.outputs.tag }}
+          CACHE_IMAGE=ghcr.io/${{ github.repository }}:cache
+
           docker buildx build \
             --platform linux/amd64 \
-            --load \
-            --cache-from=type=registry,ref=ghcr.io/${{ github.repository }}:cache \
-            --cache-to=type=registry,ref=ghcr.io/${{ github.repository }}:cache,mode=max,compress=true \
-            -t ${{ steps.meta.outputs.image }} .
+            --push \
+            --cache-from=type=registry,ref=$CACHE_IMAGE \
+            --cache-to=type=registry,ref=$CACHE_IMAGE,mode=max \
+            -t $IMAGE .
 
-      - name: Push SHA-tagged image to GHCR
+      - name: Resolve digest (output final)
+        id: meta
         run: |
-          docker push ${{ steps.meta.outputs.image }}
+          set -euo pipefail
+
+          IMAGE=${{ steps.meta.outputs.tag }}
+
+          DIGEST=$(docker buildx imagetools inspect $IMAGE --format '{{.Digest}}')
+
+          FINAL_IMAGE="ghcr.io/${{ github.repository }}@${DIGEST}"
+
+          echo "image=$FINAL_IMAGE" >> $GITHUB_OUTPUT

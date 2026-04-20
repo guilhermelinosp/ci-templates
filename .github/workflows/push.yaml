@@ -7,46 +7,59 @@ on:
         required: true
         type: string
       version:
-        required: false
+        required: true
         type: string
 
 jobs:
   push:
     runs-on: [ self-hosted, linux ]
 
+    permissions:
+      contents: read
+      packages: write
+
     concurrency:
       group: image-push-${{ github.repository }}
       cancel-in-progress: true
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Authenticate to GHCR
         run: |
           set -euo pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull SHA-tagged image
+      - name: Validate inputs
         run: |
-          docker pull ${{ inputs.image }}
+          set -euo pipefail
 
-      - name: Promote image (latest e versão)
-        run: |
-          IMAGE=${{ inputs.image }}
-          IMAGE_BASE=ghcr.io/${{ github.repository }}
+          IMAGE="${{ inputs.image }}"
+          VERSION="${{ inputs.version }}"
 
-          # Tag e push apenas as tags desejadas
-          docker tag $IMAGE $IMAGE_BASE:latest
-          docker push $IMAGE_BASE:latest
-
-          if [[ -n "${{ inputs.version }}" ]]; then
-            VERSION="${{ inputs.version }}"
-            docker tag $IMAGE $IMAGE_BASE:$VERSION
-            docker push $IMAGE_BASE:$VERSION
+          if [[ "$IMAGE" != *@sha256:* ]]; then
+            echo "Input image must be a digest (ghcr.io/...@sha256:...)"
+            exit 1
           fi
 
-          # Remove a imagem SHA localmente (opcional, não remove do GHCR)
-          docker rmi $IMAGE || true
+          if [ -z "$VERSION" ]; then
+            echo "Version cannot be empty"
+            exit 1
+          fi
+
+      - name: Pull image by digest
+        run: |
+          set -euo pipefail
+          docker pull "${{ inputs.image }}"
+
+      - name: Promote image
+        run: |
+          set -euo pipefail
+
+          SRC="${{ inputs.image }}"
+          DST="ghcr.io/${{ github.repository }}"
+          VERSION="${{ inputs.version }}"
+
+          docker tag "$SRC" "$DST:latest"
+          docker push "$DST:latest"
+
+          docker tag "$SRC" "$DST:$VERSION"
+          docker push "$DST:$VERSION"
