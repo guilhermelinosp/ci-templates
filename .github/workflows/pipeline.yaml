@@ -14,5 +14,3 @@ permissions:
 jobs:
   login:
     uses: ./.github/workflows/login.yaml
-    secrets:
-      GHCR_PAT: ${{ secrets.GHCR_PAT }}
