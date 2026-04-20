@@ -13,5 +13,3 @@ permissions:
 jobs:
   release:
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
