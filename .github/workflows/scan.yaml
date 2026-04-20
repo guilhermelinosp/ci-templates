@@ -10,8 +10,16 @@ on:
 jobs:
   scan:
     runs-on: [ self-hosted, linux ]
+    env:
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
 
     steps:
+      - name: Login (gh + GHCR)
+        uses: ./.github/actions/login
+        with:
+          ghcr-pat: ${{ secrets.GHCR_PAT }}
+
+      - name: Get latest Trivy version
       - name: Get latest Trivy version
         id: trivy_info
         run: |
@@ -67,9 +75,7 @@ jobs:
           mkdir -p .trivycache
           trivy --cache-dir ${{ github.workspace }}/.trivycache --download-db-only || true
 
-      - name: Login GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      # Login centralizado já realizado acima pelo action composto
 
       - name: Pull image
         run: |

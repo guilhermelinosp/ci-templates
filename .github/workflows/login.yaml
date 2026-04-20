@@ -6,10 +6,24 @@ on:
 jobs:
   login:
     runs-on: [ self-hosted, linux ]
+    env:
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
     steps:
-      - name: Log in to GHCR
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Authenticate GitHub CLI
+        run: |
+          set -euo pipefail
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not found in runner image; please include gh in the runner image" >&2
+            exit 1
+          fi
+          # Authenticate gh CLI using the provided PAT
+          echo "${GHCR_PAT}" | gh auth login --with-token
+          gh auth status
+          gh api user --jq .login
+
+      - name: Log in to GHCR (Docker)
+        run: |
+          set -euo pipefail
+          # Use the gh-authenticated user to perform docker login
+          USER=$(gh api user --jq .login)
+          echo "${GHCR_PAT}" | docker login ghcr.io -u "${USER}" --password-stdin
