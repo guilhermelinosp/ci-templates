@@ -39,7 +39,7 @@ jobs:
           set -euo pipefail
           docker buildx create --name ci-builder --driver docker-container --use || docker buildx use ci-builder
 
-      - name: Build and push
+      - name: Build and push (SBOM + provenance)
         id: build
         run: |
           set -euo pipefail
@@ -50,14 +50,14 @@ jobs:
 
           docker buildx build \
             --platform linux/amd64 \
-            --provenance=false \
-            --sbom=false \
             --push \
+            --attest type=sbom \
+            --attest type=provenance,mode=max \
             --cache-from=type=registry,ref=$CACHE_IMAGE \
             --cache-to=type=registry,ref=$CACHE_IMAGE,mode=max \
             -t $IMAGE .
 
-      - name: Resolve digest (robusto)
+      - name: Resolve digest
         id: export
         run: |
           set -euo pipefail
@@ -70,3 +70,15 @@ jobs:
           FINAL_IMAGE="ghcr.io/${{ github.actor }}/${IMAGE_NAME}@${DIGEST}"
 
           echo "image=$FINAL_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Scan image (blocking)
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ steps.export.outputs.image }}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            "$IMAGE"

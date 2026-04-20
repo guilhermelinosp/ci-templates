@@ -46,7 +46,7 @@ jobs:
             exit 1
           fi
 
-      - name: Promote image (atomic)
+      - name: Promote image (latest + version)
         run: |
           set -euo pipefail
 

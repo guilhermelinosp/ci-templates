@@ -28,7 +28,15 @@ jobs:
             exit 1
           fi
 
-      - name: Sign image (digest only)
+      - name: Sign image
         run: |
           set -euo pipefail
-          cosign sign --yes "${{ inputs.image }}"
+          COSIGN_EXPERIMENTAL=1 cosign sign --yes "${{ inputs.image }}"
+
+      - name: Attest provenance
+        run: |
+          set -euo pipefail
+          COSIGN_EXPERIMENTAL=1 cosign attest \
+            --yes \
+            --type slsaprovenance \
+            "${{ inputs.image }}"
