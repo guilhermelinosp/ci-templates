@@ -63,3 +63,9 @@ jobs:
 
           docker tag "$SRC" "$DST:$VERSION"
           docker push "$DST:$VERSION"
+
+          # Remover tag SHA local (não publicar)
+          SHA_TAG=$(echo "$SRC" | grep -oE ':[a-f0-9]{7,}$' | sed 's/^://')
+          if [ -n "$SHA_TAG" ]; then
+            docker rmi "$DST:$SHA_TAG" || true
+          fi
