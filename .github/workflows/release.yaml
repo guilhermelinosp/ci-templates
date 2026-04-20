@@ -57,7 +57,7 @@ jobs:
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Update VERSION file on main
+      - name: Update VERSION file on  main
         run: |
           set -euo pipefail
 
