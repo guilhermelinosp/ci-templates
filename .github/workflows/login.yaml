@@ -20,3 +20,10 @@ jobs:
           echo "${GHCR_PAT}" | gh auth login --with-token
           gh auth status
           gh api user --jq .login
+
+      - name: Log in to GHCR (Docker)
+        run: |
+          set -euo pipefail
+          # Use the gh-authenticated user to perform docker login
+          USER=$(gh api user --jq .login)
+          echo "${GHCR_PAT}" | docker login ghcr.io -u "${USER}" --password-stdin
