@@ -2,6 +2,9 @@ name: login
 
 on:
   workflow_call:
+    secrets:
+      GHCR_PAT:
+        required: true
 
 jobs:
   login:
