@@ -6,6 +6,9 @@ on:
       image:
         required: true
         type: string
+      version:
+        required: false
+        type: string
 
 jobs:
   push:
@@ -38,7 +41,11 @@ jobs:
           docker tag $IMAGE $IMAGE_BASE:latest
           docker push $IMAGE_BASE:latest
 
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          if [[ -n "${{ inputs.version }}" ]]; then
+            VERSION="${{ inputs.version }}"
+            docker tag $IMAGE $IMAGE_BASE:$VERSION
+            docker push $IMAGE_BASE:$VERSION
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
             docker tag $IMAGE $IMAGE_BASE:$VERSION
             docker push $IMAGE_BASE:$VERSION

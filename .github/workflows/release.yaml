@@ -2,10 +2,16 @@ name: release
 
 on:
   workflow_call:
+    outputs:
+      version:
+        description: 'Created version tag (eg. v1.2.3)'
+        value: ${{ jobs.release.outputs.version }}
 
 jobs:
   release:
     runs-on: [ self-hosted, linux ]
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -91,3 +97,8 @@ jobs:
             echo "Creating release $VERSION"
             gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" || true
           fi
+
+      - name: Set workflow output
+        id: set_version
+        run: |
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
