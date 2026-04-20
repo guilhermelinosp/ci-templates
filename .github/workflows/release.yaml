@@ -7,9 +7,6 @@ on:
     tags:
       - "v*"
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   release:
     runs-on: [ self-hosted, linux ]
@@ -57,7 +54,7 @@ jobs:
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Update VERSION file on  main
+      - name: Update VERSION file on main
         run: |
           set -euo pipefail
 

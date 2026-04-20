@@ -7,9 +7,6 @@ on:
         required: true
         type: string
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   scan:
     runs-on: [ self-hosted, linux ]
@@ -39,7 +36,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .trivycache
-          key: trivy-db-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-${{ steps.dockerfile_hash.outputs.dockerfile_hash }}-v1
+          key: trivy-db-${{ runner.os }}-${{ steps.trivy_info.outputs.trivy_version }}-${{
+            steps.dockerfile_hash.outputs.dockerfile_hash }}-v1
           restore-keys: |
             trivy-db-${{ runner.os }}-
 
