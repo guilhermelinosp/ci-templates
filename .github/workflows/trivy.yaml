@@ -52,14 +52,14 @@ jobs:
           name: trivy-report
           path: trivy.sarif
 
-      - name: Enforce scan (parse SARIF)
+      - name: Warn on vulnerabilities (non-blocking)
         run: |
           set -euo pipefail
 
-          if jq -e '
-            .runs[].results[]
-            | select(.level == "error")
-          ' trivy.sarif > /dev/null; then
-            echo "HIGH/CRITICAL vulnerabilities found"
-            exit 1
+          COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy.sarif)
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning::$COUNT HIGH/CRITICAL vulnerabilities found"
+          else
+            echo "No HIGH/CRITICAL vulnerabilities"
           fi

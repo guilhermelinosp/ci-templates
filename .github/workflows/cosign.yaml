@@ -1,4 +1,4 @@
-name: sign
+name: cosign
 
 on:
   workflow_call:
