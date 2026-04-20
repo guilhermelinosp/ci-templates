@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       version:
-        description: 'Created version tag (eg. v1.2.3)'
+        description: "Created version tag (eg. v1.2.3)"
         value: ${{ jobs.release.outputs.version }}
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
 
     outputs:
       version: ${{ steps.set_version.outputs.version }}
-      
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,7 +32,7 @@ jobs:
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
           else
-            git fetch --tags || true
+            git fetch --tags > /dev/null 2>&1 || true
 
             LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1 || true)
 
@@ -46,14 +46,12 @@ jobs:
             fi
           fi
 
-          echo "Creating tag: $VERSION"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION" || true
+          git tag -a "$VERSION" -m "Release $VERSION" > /dev/null 2>&1
+          git push origin "$VERSION" > /dev/null 2>&1 || true
 
           TARGET_COMMIT=$(git rev-parse "$VERSION")
-          echo "Updating 'latest' tag to point to $TARGET_COMMIT"
-          git tag -f latest "$TARGET_COMMIT"
-          git push --force origin refs/tags/latest || true
+          git tag -f latest "$TARGET_COMMIT" > /dev/null 2>&1
+          git push --force origin refs/tags/latest > /dev/null 2>&1 || true
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -62,20 +60,20 @@ jobs:
           set -euo pipefail
 
           if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
-            git fetch origin main
-            git checkout -B main origin/main
+            git fetch origin main > /dev/null 2>&1
+            git checkout -B main origin/main > /dev/null 2>&1
           else
-            git checkout -B main
+            git checkout -B main > /dev/null 2>&1
           fi
 
           echo "$VERSION" > VERSION
 
           if git diff --quiet -- VERSION; then
-            echo "VERSION unchanged; nothing to commit"
+            echo "VERSION unchanged; nothing to commit" > /dev/stderr
           else
-            git add VERSION
-            git commit -m "chore(release): update VERSION to $VERSION"
-            git push origin main
+            git add VERSION > /dev/null 2>&1
+            git commit -m "chore(release): update VERSION to $VERSION" > /dev/null 2>&1
+            git push origin main > /dev/null 2>&1
           fi
 
       - name: Create or update GitHub Release

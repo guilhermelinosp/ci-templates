@@ -26,7 +26,8 @@ jobs:
       - name: Authenticate to GHCR
         run: |
           set -euo pipefail
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "::add-mask::${{ secrets.GITHUB_TOKEN }}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin > /dev/null 2>&1
 
       - name: Validate inputs
         run: |
@@ -36,19 +37,19 @@ jobs:
           VERSION="${{ inputs.version }}"
 
           if [[ "$IMAGE" != *@sha256:* ]]; then
-            echo "Input image must be a digest (ghcr.io/...@sha256:...)"
+            echo "Input image must be a digest (ghcr.io/...@sha256:...)" > /dev/stderr
             exit 1
           fi
 
           if [ -z "$VERSION" ]; then
-            echo "Version cannot be empty"
+            echo "Version cannot be empty" > /dev/stderr
             exit 1
           fi
 
       - name: Pull image by digest
         run: |
           set -euo pipefail
-          docker pull "${{ inputs.image }}"
+          docker pull "${{ inputs.image }}" > /dev/null 2>&1
 
       - name: Promote image
         run: |
@@ -59,10 +60,10 @@ jobs:
           VERSION="${{ inputs.version }}"
 
           docker tag "$SRC" "$DST:latest"
-          docker push "$DST:latest"
+          docker push "$DST:latest" > /dev/null 2>&1
 
           docker tag "$SRC" "$DST:$VERSION"
-          docker push "$DST:$VERSION"
+          docker push "$DST:$VERSION" > /dev/null 2>&1
 
           SHA_TAG=$(echo "$SRC" | grep -oE ':[a-f0-9]{7,}$' | sed 's/^://')
           if [ -n "$SHA_TAG" ]; then
