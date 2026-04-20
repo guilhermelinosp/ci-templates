@@ -69,3 +69,14 @@ jobs:
           if [ -n "$SHA_TAG" ]; then
             docker rmi "$DST:$SHA_TAG" || true
           fi
+
+          # Remover tag temp-local do repositório remoto, se existir
+          if docker manifest inspect "$DST:temp-local" > /dev/null 2>&1; then
+            echo "Removendo tag temp-local do repositório remoto"
+            echo "::group::Delete temp-local from GHCR"
+            echo "DELETE https://ghcr.io/v2/${{ github.repository }}/manifests/$(docker manifest inspect $DST:temp-local --verbose | grep Digest | head -n1 | awk '{print $2}')"
+            TOKEN=$(echo "${{ secrets.GITHUB_TOKEN }}" | base64)
+            DIGEST=$(docker manifest inspect $DST:temp-local --verbose | grep Digest | head -n1 | awk '{print $2}')
+            curl -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://ghcr.io/v2/${{ github.repository }}/manifests/$DIGEST" || true
+            echo "::endgroup::"
+          fi
