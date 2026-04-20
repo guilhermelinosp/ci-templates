@@ -57,6 +57,9 @@ jobs:
           git tag -f latest "$TARGET_COMMIT"
           git push --force origin refs/tags/latest || true
 
+          # Export VERSION for next steps
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Update VERSION file on main
         run: |
           set -euo pipefail
