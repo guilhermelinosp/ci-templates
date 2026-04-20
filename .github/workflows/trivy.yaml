@@ -1,0 +1,67 @@
+name: trivy
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+jobs:
+  scan:
+    runs-on: [ self-hosted, linux ]
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Validate input
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ inputs.image }}"
+
+          if [[ "$IMAGE" != *@sha256:* ]]; then
+            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
+            exit 1
+          fi
+
+      - name: Scan image (SARIF)
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ inputs.image }}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format sarif \
+            --output trivy.sarif \
+            --no-progress \
+            "$IMAGE"
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+
+      - name: Upload Trivy report (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy.sarif
+
+      - name: Enforce scan (fail on vuln)
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ inputs.image }}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --quiet \
+            --no-progress \
+            --exit-code 1 \
+            "$IMAGE"
