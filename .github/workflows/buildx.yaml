@@ -15,7 +15,7 @@ jobs:
       packages: write
 
     outputs:
-      image: ${{ steps.meta.outputs.image }}
+      image: ${{ steps.meta_digest.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Define image (tag temporária)
-        id: meta
+        id: meta_tag
         run: |
           REPO=${{ github.repository }}
           SHORT_SHA=${GITHUB_SHA::7}
@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          IMAGE=${{ steps.meta.outputs.tag }}
+          IMAGE=${{ steps.meta_tag.outputs.tag }}
           CACHE_IMAGE=ghcr.io/${{ github.repository }}:cache
 
           docker buildx build \
@@ -55,11 +55,11 @@ jobs:
             -t $IMAGE .
 
       - name: Resolve digest (output final)
-        id: meta
+        id: meta_digest
         run: |
           set -euo pipefail
 
-          IMAGE=${{ steps.meta.outputs.tag }}
+          IMAGE=${{ steps.meta_tag.outputs.tag }}
 
           DIGEST=$(docker buildx imagetools inspect $IMAGE --format '{{.Digest}}')
 
