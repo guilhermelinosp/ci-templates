@@ -32,7 +32,6 @@ jobs:
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
           else
-            # Ensure we have tags
             git fetch --tags || true
 
             LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1 || true)
@@ -40,7 +39,6 @@ jobs:
             if [ -z "$LATEST_TAG" ]; then
               VERSION="v1.0.0"
             else
-              # Strip leading 'v'
               TAG_NUM=${LATEST_TAG#v}
               IFS='.' read -r MAJOR MINOR PATCH <<< "$TAG_NUM"
               PATCH=$((PATCH + 1))
@@ -57,25 +55,21 @@ jobs:
           git tag -f latest "$TARGET_COMMIT"
           git push --force origin refs/tags/latest || true
 
-          # Export VERSION for next steps
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Update VERSION file on main
         run: |
           set -euo pipefail
 
-          # Ensure we have the latest refs for main
           if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
             git fetch origin main
             git checkout -B main origin/main
           else
-            # No main branch on remote yet; create it from current HEAD
             git checkout -B main
           fi
 
           echo "$VERSION" > VERSION
 
-          # Commit only if changed
           if git diff --quiet -- VERSION; then
             echo "VERSION unchanged; nothing to commit"
           else
@@ -90,7 +84,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Determine previous tag (if any) to build changelog
           PREV_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | awk -v v="$VERSION" '$0!=v{print; exit}') || true
 
           if [ -n "$PREV_TAG" ]; then
@@ -105,5 +98,4 @@ jobs:
           else
             echo "Creating release $VERSION"
             gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" || true
-          fi
           fi
