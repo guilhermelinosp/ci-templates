@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   login:
-    uses: guilhermelinosp/ci-templates/.github/workflows/login.yaml@latest
+    uses: ../login.yaml
 
   release:
+    needs: login
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
