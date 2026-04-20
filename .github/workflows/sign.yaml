@@ -3,37 +3,32 @@ name: sign
 on:
   workflow_call:
     inputs:
-      version:
+      image:
         required: true
         type: string
 
 jobs:
   sign:
     runs-on: [ self-hosted, linux ]
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Authenticate to GHCR
+      - name: Validate input
         run: |
           set -euo pipefail
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Define image
-        id: meta_tag
+          IMAGE="${{ inputs.image }}"
+
+          if [[ "$IMAGE" != *@sha256:* ]]; then
+            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
+            exit 1
+          fi
+
+      - name: Sign image (digest only)
         run: |
           set -euo pipefail
-          IMAGE_NAME=$(yq '.image' ./config.yaml)
-          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
-
-      - name: Sign latest image
-        run: |
-          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
-          cosign sign --yes ghcr.io/${{ github.actor }}/${IMAGE_NAME}:latest
-
-      - name: Sign version image
-        run: |
-          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
-          cosign sign --yes ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${{ inputs.version }}
+          cosign sign --yes "${{ inputs.image }}"

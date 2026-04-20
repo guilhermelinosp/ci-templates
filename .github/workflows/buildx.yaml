@@ -11,7 +11,7 @@ jobs:
     runs-on: [ self-hosted, linux ]
 
     outputs:
-      image: ${{ steps.meta_digest.outputs.image }}
+      image: ${{ steps.export.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -25,12 +25,12 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Define image
-        id: meta_tag
+        id: meta
         run: |
           set -euo pipefail
           IMAGE_NAME=$(yq '.image' ./config.yaml)
-          SHORT_SHA=${GITHUB_SHA::7}
-          IMAGE=ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${SHORT_SHA}
+          IMAGE=ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${GITHUB_SHA::7}
+
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
@@ -43,8 +43,9 @@ jobs:
         id: build
         run: |
           set -euo pipefail
-          IMAGE="${{ steps.meta_tag.outputs.tag }}"
-          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
+
+          IMAGE="${{ steps.meta.outputs.tag }}"
+          IMAGE_NAME="${{ steps.meta.outputs.image_name }}"
           CACHE_IMAGE="ghcr.io/${{ github.actor }}/${IMAGE_NAME}:cache"
 
           docker buildx build \
@@ -56,15 +57,15 @@ jobs:
             --cache-to=type=registry,ref=$CACHE_IMAGE,mode=max \
             -t $IMAGE .
 
-      - name: Resolve digest
-        id: meta_digest
+      - name: Resolve digest (robusto)
+        id: export
         run: |
           set -euo pipefail
 
-          IMAGE="${{ steps.meta_tag.outputs.tag }}"
-          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
+          IMAGE="${{ steps.meta.outputs.tag }}"
+          IMAGE_NAME="${{ steps.meta.outputs.image_name }}"
 
-          DIGEST=$(docker buildx imagetools inspect $IMAGE | grep Digest | head -n1 | awk '{print $2}')
+          DIGEST=$(docker buildx imagetools inspect "$IMAGE" --format '{{json .Manifest.Digest}}' | tr -d '"')
 
           FINAL_IMAGE="ghcr.io/${{ github.actor }}/${IMAGE_NAME}@${DIGEST}"
 

@@ -4,7 +4,6 @@ on:
   workflow_call:
     outputs:
       version:
-        description: "Created version tag (eg. v1.2.3)"
         value: ${{ jobs.release.outputs.version }}
 
 jobs:
