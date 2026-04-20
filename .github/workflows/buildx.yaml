@@ -29,8 +29,8 @@ jobs:
         id: meta_tag
         run: |
           REPO=${{ github.repository }}
-          # Não publicar tag SHA, apenas usar localmente
-          IMAGE=ghcr.io/${REPO}:temp-local
+          SHORT_SHA=${GITHUB_SHA::7}
+          IMAGE=ghcr.io/${REPO}:${SHORT_SHA}
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
 
       - name: Setup buildx
@@ -47,7 +47,6 @@ jobs:
           IMAGE=${{ steps.meta_tag.outputs.tag }}
           CACHE_IMAGE=ghcr.io/${{ github.repository }}:cache
 
-          # Build e push apenas para tag temporária (não SHA)
           docker buildx build \
             --platform linux/amd64 \
             --push \
