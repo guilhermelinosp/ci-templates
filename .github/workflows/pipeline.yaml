@@ -9,11 +9,10 @@ on:
 permissions:
   contents: write
   packages: write
-  id-token: write
 
 jobs:
   login:
-    uses: ../login.yaml
+    uses: ./.github/workflows/login.yaml
 
   release:
     needs: login
