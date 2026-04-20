@@ -12,9 +12,6 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login GHCR and authenticate gh
-        uses: guilhermelinosp/ci-templates/.github/workflows/login.yaml@latest
-
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]" > /dev/null 2>&1
