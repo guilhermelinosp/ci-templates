@@ -1,0 +1,51 @@
+name: cosign
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+jobs:
+  sign:
+    runs-on: [ self-hosted, linux ]
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+    steps:
+      - name: Authenticate to GHCR
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Validate input
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ inputs.image }}"
+
+          if [[ -z "$IMAGE" ]]; then
+            echo "Image input is empty" >&2
+            exit 1
+          fi
+
+          if [[ "$IMAGE" != *@sha256:* ]]; then
+            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
+            echo "Received: $IMAGE" >&2
+            exit 1
+          fi
+
+      - name: Sign image (OCI referrers mode)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -euo pipefail
+
+          cosign sign \
+            --yes \
+            --registry-referrers-mode=oci-1-1 \
+            "${{ inputs.image }}"
