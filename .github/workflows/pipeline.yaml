@@ -13,4 +13,4 @@ permissions:
 
 jobs:
   login:
-    uses: .github/workflows/login.yaml
+    uses: ./.github/workflows/login.yaml
