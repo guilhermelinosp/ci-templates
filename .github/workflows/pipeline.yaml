@@ -13,4 +13,3 @@ permissions:
 jobs:
   release:
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
-    needs: login
