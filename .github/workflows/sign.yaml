@@ -3,7 +3,7 @@ name: sign
 on:
   workflow_call:
     inputs:
-      image:
+      version:
         required: true
         type: string
 
@@ -16,13 +16,24 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Ensure cosign is available
+      - name: Authenticate to GHCR
         run: |
-          if ! command -v cosign >/dev/null 2>&1; then
-            echo "cosign not found in runner image; please ensure the runner image includes cosign or re-enable the install step" >&2
-            exit 1
-          fi
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Sign image
+      - name: Define image
+        id: meta_tag
         run: |
-          cosign sign --yes ${{ inputs.image }}
+          set -euo pipefail
+          IMAGE_NAME=$(yq '.image' ./config.yaml)
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Sign latest image
+        run: |
+          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
+          cosign sign --yes ghcr.io/${{ github.actor }}/${IMAGE_NAME}:latest
+
+      - name: Sign version image
+        run: |
+          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
+          cosign sign --yes ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${{ inputs.version }}

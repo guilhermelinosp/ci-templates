@@ -28,7 +28,7 @@ jobs:
         id: meta_tag
         run: |
           set -euo pipefail
-          IMAGE_NAME=$(yq '.image' ./config.yml)
+          IMAGE_NAME=$(yq '.image' ./config.yaml)
           SHORT_SHA=${GITHUB_SHA::7}
           IMAGE=ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${SHORT_SHA}
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
