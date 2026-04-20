@@ -13,4 +13,4 @@ jobs:
 
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
