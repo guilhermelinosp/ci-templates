@@ -11,9 +11,7 @@ permissions:
   packages: write
 
 jobs:
-  login:
-    uses: ./.github/workflows/login.yaml
-
   release:
-    needs: login
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

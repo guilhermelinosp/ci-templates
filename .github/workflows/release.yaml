@@ -7,11 +7,13 @@ jobs:
   release:
     runs-on: [ self-hosted, linux ]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login GHCR and authenticate gh
+        uses: guilhermelinosp/ci-templates/.github/workflows/login.yaml@latest
 
       - name: Configure Git
         run: |

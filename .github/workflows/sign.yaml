@@ -10,8 +10,12 @@ on:
 jobs:
   sign:
     runs-on: [ self-hosted, linux ]
-
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Ensure cosign is available
         run: |
           if ! command -v cosign >/dev/null 2>&1; then
