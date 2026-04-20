@@ -11,10 +11,6 @@ jobs:
   scan:
     runs-on: [ self-hosted, linux ]
 
-    permissions:
-      contents: read
-      security-events: write
-
     steps:
       - name: Validate input
         run: |
@@ -52,16 +48,14 @@ jobs:
           name: trivy-report
           path: trivy.sarif
 
-      - name: Enforce scan (fail on vuln)
+      - name: Enforce scan (parse SARIF)
         run: |
           set -euo pipefail
 
-          IMAGE="${{ inputs.image }}"
-
-          trivy image \
-            --severity HIGH,CRITICAL \
-            --ignore-unfixed \
-            --quiet \
-            --no-progress \
-            --exit-code 1 \
-            "$IMAGE"
+          if jq -e '
+            .runs[].results[]
+            | select(.level == "error")
+          ' trivy.sarif > /dev/null; then
+            echo "HIGH/CRITICAL vulnerabilities found"
+            exit 1
+          fi
