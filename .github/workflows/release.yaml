@@ -23,6 +23,24 @@ jobs:
           git config user.name "github-actions[bot]" > /dev/null 2>&1
           git config user.email "github-actions[bot]@users.noreply.github.com" > /dev/null 2>&1
 
+      - name: Verify gh authentication
+        run: |
+          set -euo pipefail
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not found in runner image; release requires gh" >&2
+            exit 1
+          fi
+
+          if ! gh auth status >/dev/null 2>&1; then
+            echo "gh not authenticated; attempting to login with GITHUB_TOKEN"
+            echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token || true
+          fi
+
+          if ! gh auth status >/dev/null 2>&1; then
+            echo "gh authentication failed; aborting release" >&2
+            exit 1
+          fi
+
       - name: Create version tag
         run: |
           set -euo pipefail
