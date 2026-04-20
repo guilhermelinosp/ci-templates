@@ -82,6 +82,7 @@ jobs:
             git add VERSION
             git commit -m "chore(release): update VERSION to $VERSION"
             git push origin main
+          fi
 
       - name: Create or update GitHub Release
         env:
