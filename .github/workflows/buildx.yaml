@@ -32,6 +32,7 @@ jobs:
           SHORT_SHA=${GITHUB_SHA::7}
           IMAGE=ghcr.io/${IMAGE_NAME}:${SHORT_SHA}
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Setup buildx
         run: |
@@ -42,8 +43,9 @@ jobs:
         id: build
         run: |
           set -euo pipefail
-          IMAGE=${{ steps.meta_tag.outputs.tag }}
-          CACHE_IMAGE=ghcr.io/${IMAGE_NAME}:cache
+          IMAGE="${{ steps.meta_tag.outputs.tag }}"
+          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
+          CACHE_IMAGE="ghcr.io/${IMAGE_NAME}:cache"
 
           docker buildx build \
             --platform linux/amd64 \
@@ -59,7 +61,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          IMAGE=${{ steps.meta_tag.outputs.tag }}
+          IMAGE="${{ steps.meta_tag.outputs.tag }}"
+          IMAGE_NAME="${{ steps.meta_tag.outputs.image_name }}"
 
           DIGEST=$(docker buildx imagetools inspect $IMAGE | grep Digest | head -n1 | awk '{print $2}')
 
