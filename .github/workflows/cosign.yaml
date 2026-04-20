@@ -18,20 +18,38 @@ jobs:
 
           IMAGE="${{ inputs.image }}"
 
-          if [[ "$IMAGE" != *@sha256:* ]]; then
-            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
+          if [[ -z "$IMAGE" ]]; then
+            echo "Image input is empty" >&2
             exit 1
           fi
 
-      - name: Sign image
+          if [[ "$IMAGE" != *@sha256:* ]]; then
+            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
+            echo "Received: $IMAGE" >&2
+            exit 1
+          fi
+
+      - name: Debug image (optional)
+        run: |
+          echo "Signing image: ${{ inputs.image }}"
+
+      - name: Sign image (cosign OIDC)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
-          COSIGN_EXPERIMENTAL=1 cosign sign --yes "${{ inputs.image }}"
+
+          cosign sign \
+            --yes \
+            "${{ inputs.image }}"
 
       - name: Attest provenance
+        env:
+          COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
-          COSIGN_EXPERIMENTAL=1 cosign attest \
+
+          cosign attest \
             --yes \
             --type slsaprovenance \
             "${{ inputs.image }}"
