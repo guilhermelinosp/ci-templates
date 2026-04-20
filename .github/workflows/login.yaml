@@ -10,9 +10,7 @@ jobs:
       - name: Login GHCR and authenticate gh
         run: |
           set -euo pipefail
-          if ! command -v gh >/dev/null 2>&1; then
-            echo "gh CLI not found in runner image; please include gh in the runner image" >&2
-            exit 1
-          fi
+
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          docker login ghcr.io -u $(gh api user --jq .login) --password-stdin <<< $(gh auth token)
+
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
