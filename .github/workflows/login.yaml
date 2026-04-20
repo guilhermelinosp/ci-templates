@@ -10,6 +10,10 @@ jobs:
       - name: Login no GitHub CLI (gh)
         run: |
           set -euo pipefail
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not found in runner image; please include gh in the runner image" >&2
+            exit 1
+          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           if gh auth status; then
             echo "Login no gh CLI bem-sucedido."
