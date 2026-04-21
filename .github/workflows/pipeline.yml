@@ -12,4 +12,4 @@ permissions:
 
 jobs:
   release:
-    uses: guilhermelinosp/ci-templates/.github/workflows/release.yaml@latest
+    uses: guilhermelinosp/ci-templates/.github/workflows/release.yml@latest
