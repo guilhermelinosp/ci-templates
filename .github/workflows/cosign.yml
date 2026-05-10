@@ -3,13 +3,16 @@ name: cosign
 on:
   workflow_call:
     inputs:
+      runner:
+        required: true
+        type: string
       image:
         required: true
         type: string
 
 jobs:
   sign:
-    runs-on: [ self-hosted, linux ]
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     permissions:
       contents: read

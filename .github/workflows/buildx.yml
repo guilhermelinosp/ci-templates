@@ -2,13 +2,17 @@ name: buildx
 
 on:
   workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
     outputs:
       image:
         value: ${{ jobs.buildx.outputs.image }}
 
 jobs:
   buildx:
-    runs-on: [ self-hosted, linux ]
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     outputs:
       image: ${{ steps.export.outputs.image }}

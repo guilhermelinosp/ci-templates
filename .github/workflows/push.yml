@@ -3,6 +3,9 @@ name: push
 on:
   workflow_call:
     inputs:
+      runner:
+        required: true
+        type: string
       image:
         required: true
         type: string
@@ -12,15 +15,7 @@ on:
 
 jobs:
   push:
-    runs-on: [ self-hosted, linux ]
-
-    permissions:
-      contents: read
-      packages: write
-
-    concurrency:
-      group: image-push-${{ github.repository }}
-      cancel-in-progress: true
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     steps:
       - name: Authenticate to GHCR

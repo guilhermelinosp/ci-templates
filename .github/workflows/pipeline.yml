@@ -10,6 +10,12 @@ permissions:
   contents: write
   packages: write
 
+concurrency:
+  group: image-push-${{ github.repository }}
+  cancel-in-progress: true
+
 jobs:
   release:
-    uses: guilhermelinosp/ci-templates/.github/workflows/release.yml@latest
+    uses: ./.github/workflows/release.yml
+    with:
+      runner: '["self-hosted"]'

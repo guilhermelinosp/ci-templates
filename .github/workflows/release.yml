@@ -2,13 +2,17 @@ name: release
 
 on:
   workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
     outputs:
       version:
         value: ${{ jobs.release.outputs.version }}
 
 jobs:
   release:
-    runs-on: [ self-hosted, linux ]
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     outputs:
       version: ${{ steps.set_version.outputs.version }}
