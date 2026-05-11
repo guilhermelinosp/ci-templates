@@ -1,17 +1,12 @@
 name: docs
+
 on:
   workflow_call:
     inputs:
       runner:
         required: true
         type: string
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ${{ inputs.runner }}
