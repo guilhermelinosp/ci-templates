@@ -12,7 +12,7 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: ${{ inputs.runner }}
 
     outputs:
       version: ${{ steps.set_version.outputs.version }}

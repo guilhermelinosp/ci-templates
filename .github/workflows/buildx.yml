@@ -1,58 +1,48 @@
 name: buildx
-
 on:
   workflow_call:
     inputs:
       runner:
         required: true
         type: string
+      registry_owner:
+        required: true
+        type: string
     outputs:
       image:
         value: ${{ jobs.buildx.outputs.image }}
-
 jobs:
   buildx:
-    runs-on: ${{ fromJSON(inputs.runner) }}
-
+    runs-on: ${{ inputs.runner }}
     outputs:
       image: ${{ steps.export.outputs.image }}
-
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Authenticate to GHCR
         run: |
           set -euo pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
       - name: Define image
         id: meta
         run: |
           set -euo pipefail
           IMAGE_NAME=$(yq '.image' ./config.yml)
-
-          IMAGE=ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${GITHUB_SHA::7}
-
+          IMAGE=ghcr.io/${{ inputs.registry_owner }}/${IMAGE_NAME}:${GITHUB_SHA::7}
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
-
       - name: Setup buildx
         run: |
           set -euo pipefail
           docker buildx create --name ci-builder --driver docker-container --use || docker buildx use ci-builder
-
       - name: Build and push (SBOM + provenance)
-        id: build
         run: |
           set -euo pipefail
-
           IMAGE="${{ steps.meta.outputs.tag }}"
           IMAGE_NAME="${{ steps.meta.outputs.image_name }}"
-          CACHE_IMAGE="ghcr.io/${{ github.actor }}/${IMAGE_NAME}:cache"
-
+          CACHE_IMAGE="ghcr.io/${{ inputs.registry_owner }}/${IMAGE_NAME}:cache"
           docker buildx build \
             --platform linux/amd64 \
             --push \
@@ -61,17 +51,12 @@ jobs:
             --cache-from=type=registry,ref=$CACHE_IMAGE \
             --cache-to=type=registry,ref=$CACHE_IMAGE,mode=max \
             -t $IMAGE .
-
       - name: Resolve digest
         id: export
         run: |
           set -euo pipefail
-
           IMAGE="${{ steps.meta.outputs.tag }}"
           IMAGE_NAME="${{ steps.meta.outputs.image_name }}"
-
           DIGEST=$(docker buildx imagetools inspect "$IMAGE" --format '{{json .Manifest.Digest}}' | tr -d '"')
-
-          FINAL_IMAGE="ghcr.io/${{ github.actor }}/${IMAGE_NAME}@${DIGEST}"
-
+          FINAL_IMAGE="ghcr.io/${{ inputs.registry_owner }}/${IMAGE_NAME}@${DIGEST}"
           echo "image=$FINAL_IMAGE" >> $GITHUB_OUTPUT

@@ -15,7 +15,7 @@ on:
 
 jobs:
   push:
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: ${{ inputs.runner }}
 
     steps:
       - name: Authenticate to GHCR

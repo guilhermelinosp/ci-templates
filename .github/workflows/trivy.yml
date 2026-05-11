@@ -12,7 +12,7 @@ on:
 
 jobs:
   scan:
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: ${{ inputs.runner }}
 
     steps:
       - name: Validate input

@@ -1,6 +1,7 @@
 name: pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -18,4 +19,4 @@ jobs:
   release:
     uses: ./.github/workflows/release.yml
     with:
-      runner: '["self-hosted"]'
+      runner: ubuntu-latest

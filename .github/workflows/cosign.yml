@@ -12,7 +12,7 @@ on:
 
 jobs:
   sign:
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: ${{ inputs.runner }}
 
     permissions:
       contents: read
