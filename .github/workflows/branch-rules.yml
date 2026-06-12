@@ -41,16 +41,16 @@ jobs:
                 *) echo "❌ Para develop, use branches feature/* ou bugfix/*"; exit 1 ;;
               esac
               ;;
-            homolog)
+              homolog)
               case "$HEAD" in
-                release/*) echo "✅ Válido: $HEAD → homolog" ;;
-                *) echo "❌ Para homolog, use branches release/*"; exit 1 ;;
+                develop|hotfix/*) echo "✅ Válido: $HEAD → homolog" ;;
+                *) echo "❌ Para homolog, use develop ou hotfix/*"; exit 1 ;;
               esac
               ;;
             main)
               case "$HEAD" in
-                release/*|hotfix/*) echo "✅ Válido: $HEAD → main" ;;
-                *) echo "❌ Para main, use branches release/* ou hotfix/*"; exit 1 ;;
+                homolog|hotfix/*) echo "✅ Válido: $HEAD → main" ;;
+                *) echo "❌ Para main, use homolog ou hotfix/*"; exit 1 ;;
               esac
               ;;
             *) echo "❌ Base branch inválida: $BASE"; exit 1 ;;

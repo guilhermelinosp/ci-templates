@@ -72,30 +72,37 @@ push/PR → pipeline.yml
 
 | Branch | Uso | Quem cria PR |
 |---|---|---|
-| `main` | Produção | `release/*` ou `hotfix/*` |
-| `homolog` | Homologação | `release/*` |
+| `main` | Produção | `homolog` ou `hotfix/*` |
+| `homolog` | Homologação | `develop` ou `hotfix/*` |
 | `develop` | Desenvolvimento contínuo | `feature/*` ou `bugfix/*` |
 | `feature/*` | Nova funcionalidade | — |
 | `hotfix/*` | Correção urgente em produção | — |
-| `release/*` | Preparação de release | — |
 
 ### Fluxo
 
 ```
 feature/login → PR → develop
-                          ↓
-                    release/1.5.0 → PR → homolog (testes)
-                                                ↓
-                                          PR → main (tag v1.5.0)
-                                                ↓
-                                          sync → develop, homolog
+                        ↓
+                  develop → PR → homolog (testes)
+                                    ↓
+                              homolog → PR → main (tag automática via release-please)
+                                    ↓
+                              main → sync develop, homolog
 ```
 
-### Versionamento (SemVer)
+### Versionamento (SemVer + Release Please)
 
-- `MAJOR` — quebra compatibilidade
-- `MINOR` — nova funcionalidade  
-- `PATCH` — correção de bug
+O versionamento é **automático** via `release-please` ao mergear para `main`:
+
+- `MAJOR` — commit com `BREAKING CHANGE:` ou `!` no escopo
+- `MINOR` — commit `feat:`
+- `PATCH` — commit `fix:`
+
+Release-please:
+1. Escaneia commits desde o último tag
+2. Calcula próxima versão (SemVer)
+3. Abre/atualiza Release PR com changelog
+4. Quando mergeado → cria GitHub Release + tag
 
 ### Conventional Commits
 
