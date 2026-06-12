@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate workflow syntax
+        run: |
+          set -euo pipefail
+          for f in .github/workflows/*.yml; do
+            echo "Checking $f..."
+            yq eval '.on | keys' "$f" | grep -q 'workflow_call' && echo "  ✅ Has workflow_call trigger"
+          done
+      - name: Check config.yml example
+        run: |
+          set -euo pipefail
+          test -f config.yml && echo "config.yml exists ✅"
+          yq '.image' config.yml || echo "⚠️  config.yml missing image field"
+      - name: System info
+        run: |
+          echo "Runner: $(uname -a)"
+          echo "Tools: gh=$(gh --version 2>&1 | head -1), yq=$(yq --version 2>&1)"
