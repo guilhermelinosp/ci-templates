@@ -1,0 +1,67 @@
+# CI Templates
+
+Pipeline reutilizável para build, scan, assinatura e publicação de imagens Docker no GitHub Container Registry (GHCR).
+
+## Workflows
+
+| Workflow | Tipo | Descrição |
+|---|---|---|
+| `pipeline.yml` | **Orchestrator** | Pipeline completa: release → buildx → trivy + cosign → push |
+| `release.yml` | reusable | Semver bump, git tag, GitHub Release, VERSION file |
+| `buildx.yml` | reusable | Build multi-arch com SBOM, provenance e cache registry |
+| `trivy.yml` | reusable | Scan de vulnerabilidades HIGH/CRITICAL com SARIF |
+| `cosign.yml` | reusable | Assinatura keyless (sigstore) em modo OCI referrers |
+| `push.yml` | reusable | Promote image digest para latest + versão |
+| `docs.yml` | reusable | Build + deploy MkDocs para GitHub Pages |
+
+## Como usar
+
+### Em um repositório de app
+
+Crie `.github/workflows/ci.yml`:
+
+```yaml
+name: CI
+on:
+  push:
+    branches: [ main ]
+jobs:
+  ci:
+    uses: guilhermelinosp/ci-templates/.github/workflows/pipeline.yml@main
+    with:
+      runner: self-hosted
+    secrets: inherit
+```
+
+### Configuração
+
+Crie `config.yml` na raiz do seu repositório:
+
+```yaml
+image: nome-da-imagem
+```
+
+Se `config.yml` não existir, usa o nome do próprio repositório.
+
+### Pré-requisitos
+
+- Dockerfile na raiz do repositório
+- GitHub Actions habilitado
+- ARC runner (self-hosted) ou `ubuntu-latest`
+- Permissões: `contents: write`, `packages: write`, `id-token: write`
+
+## Pipeline flow
+
+```
+push/PR → pipeline.yml
+            │
+            ├── release.yml  → v1.2.3
+            │
+            ├── buildx.yml   → ghcr.io/owner/image@sha256:abc...
+            │
+            ├─┬ trivy.yml    → SARIF → GitHub Security
+            │ └ cosign.yml   → Signature → OCI referrers
+            │
+            └── push.yml     → ghcr.io/owner/image:latest
+                              → ghcr.io/owner/image:v1.2.3
+```

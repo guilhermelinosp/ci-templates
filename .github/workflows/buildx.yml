@@ -1,4 +1,5 @@
 name: buildx
+
 on:
   workflow_call:
     inputs:
@@ -11,6 +12,11 @@ on:
     outputs:
       image:
         value: ${{ jobs.buildx.outputs.image }}
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   buildx:
     runs-on: ${{ inputs.runner }}
@@ -21,22 +27,32 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Authenticate to GHCR
         run: |
           set -euo pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Define image
         id: meta
         run: |
           set -euo pipefail
-          IMAGE_NAME=$(yq '.image' ./config.yml)
+
+          # Define image name: from config.yml ou fallback para nome do repo
+          if [ -f ./config.yml ]; then
+            IMAGE_NAME=$(yq '.image // ""' ./config.yml)
+          fi
+          IMAGE_NAME="${IMAGE_NAME:-${{ github.event.repository.name }}}"
+
           IMAGE=ghcr.io/${{ inputs.registry_owner }}/${IMAGE_NAME}:${GITHUB_SHA::7}
           echo "tag=$IMAGE" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
       - name: Setup buildx
         run: |
           set -euo pipefail
-          docker buildx create --name ci-builder --driver docker-container --use || docker buildx use ci-builder
+          docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
+
       - name: Build and push (SBOM + provenance)
         run: |
           set -euo pipefail
@@ -51,6 +67,7 @@ jobs:
             --cache-from=type=registry,ref=$CACHE_IMAGE \
             --cache-to=type=registry,ref=$CACHE_IMAGE,mode=max \
             -t $IMAGE .
+
       - name: Resolve digest
         id: export
         run: |

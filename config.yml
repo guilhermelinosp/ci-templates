@@ -1,0 +1,4 @@
+# Nome da imagem para build (sem namespace ou tag)
+# Usado pelo workflow buildx.yml
+# Se ausente, usa o nome do repositório como fallback
+image: meu-app
