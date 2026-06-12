@@ -59,12 +59,21 @@ jobs:
           IMAGE="${{ steps.meta.outputs.tag }}"
           IMAGE_NAME="${{ steps.meta.outputs.image_name }}"
           CACHE_IMAGE="ghcr.io/${{ inputs.registry_owner }}/${IMAGE_NAME}:cache"
+
+          CACHE_FROM=""
+          if docker buildx imagetools inspect "$CACHE_IMAGE" &>/dev/null; then
+            echo "Cache found at $CACHE_IMAGE"
+            CACHE_FROM="--cache-from=type=registry,ref=$CACHE_IMAGE"
+          else
+            echo "No cache found at $CACHE_IMAGE — building from scratch"
+          fi
+
           docker buildx build \
             --platform linux/amd64 \
             --push \
             --attest type=sbom \
             --attest type=provenance,mode=max \
-            --cache-from=type=registry,ref=$CACHE_IMAGE \
+            $CACHE_FROM \
             --cache-to=type=registry,ref=$CACHE_IMAGE,mode=max \
             -t $IMAGE .
 
