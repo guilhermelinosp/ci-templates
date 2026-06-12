@@ -1,6 +1,13 @@
 name: pipeline
 
 on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner label (self-hosted ou ubuntu-latest)'
+        required: true
+        type: string
+        default: self-hosted
   workflow_dispatch:
     inputs:
       runner:
