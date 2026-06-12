@@ -65,3 +65,64 @@ push/PR → pipeline.yml
             └── push.yml     → ghcr.io/owner/image:latest
                               → ghcr.io/owner/image:v1.2.3
 ```
+
+## Git Flow
+
+### Branches
+
+| Branch | Uso | Quem cria PR |
+|---|---|---|
+| `main` | Produção | `release/*` ou `hotfix/*` |
+| `homolog` | Homologação | `release/*` |
+| `develop` | Desenvolvimento contínuo | `feature/*` ou `bugfix/*` |
+| `feature/*` | Nova funcionalidade | — |
+| `hotfix/*` | Correção urgente em produção | — |
+| `release/*` | Preparação de release | — |
+
+### Fluxo
+
+```
+feature/login → PR → develop
+                          ↓
+                    release/1.5.0 → PR → homolog (testes)
+                                                ↓
+                                          PR → main (tag v1.5.0)
+                                                ↓
+                                          sync → develop, homolog
+```
+
+### Versionamento (SemVer)
+
+- `MAJOR` — quebra compatibilidade
+- `MINOR` — nova funcionalidade  
+- `PATCH` — correção de bug
+
+### Conventional Commits
+
+```
+feat(auth): adiciona login com Google
+fix(api): corrige timeout do gateway
+docs(readme): atualiza documentação
+refactor(user): simplifica validação
+test(auth): adiciona testes de login
+```
+
+### Regras (via GitHub Actions)
+
+Os workflows `branch-rules.yml` e `merge-check.yml` validam:
+
+1. **Push direto** em `main`, `homolog`, `develop` → ❌ bloqueado
+2. **Nome da branch** no PR → deve seguir o padrão (`feature/*` → `develop`, etc.)
+3. **PR title** → deve seguir Conventional Commits
+4. **Commits** → devem seguir Conventional Commits (ignora merges)
+5. **PR template** → checklist obrigatório
+
+Ative esses workflows adicionando no seu repositório:
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  validate:
+    uses: guilhermelinosp/ci-templates/.github/workflows/branch-rules.yml@main
+    secrets: inherit
+```
