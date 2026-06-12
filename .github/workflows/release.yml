@@ -10,13 +10,14 @@ on:
       version:
         value: ${{ jobs.release.outputs.version }}
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ${{ inputs.runner }}
-
     outputs:
       version: ${{ steps.set_version.outputs.version }}
-
     steps:
       - uses: actions/checkout@v6
         with:
@@ -25,18 +26,18 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "github-actions[bot]" > /dev/null 2>&1
-          git config user.email "github-actions[bot]@users.noreply.github.com" > /dev/null 2>&1
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Create version tag
+        id: semver
         run: |
           set -euo pipefail
 
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
           else
-            git fetch --tags > /dev/null 2>&1 || true
-
+            git fetch --tags 2>/dev/null || true
             LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1 || true)
 
             if [ -z "$LATEST_TAG" ]; then
@@ -49,34 +50,34 @@ jobs:
             fi
           fi
 
-          git tag -a "$VERSION" -m "Release $VERSION" > /dev/null 2>&1
-          git push origin "$VERSION" > /dev/null 2>&1 || true
-
-          TARGET_COMMIT=$(git rev-parse "$VERSION")
-          git tag -f latest "$TARGET_COMMIT" > /dev/null 2>&1
-          git push --force origin refs/tags/latest > /dev/null 2>&1 || true
-
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Tag commit
+        run: |
+          set -euo pipefail
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+      - name: Update latest tag
+        run: |
+          set -euo pipefail
+          git tag -f latest
+          git push origin latest --force
 
       - name: Update VERSION file on main
         run: |
           set -euo pipefail
-
-          if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
-            git fetch origin main > /dev/null 2>&1
-            git checkout -B main origin/main > /dev/null 2>&1
-          else
-            git checkout -B main > /dev/null 2>&1
-          fi
-
+          git fetch origin main
+          git checkout origin/main
           echo "$VERSION" > VERSION
 
           if git diff --quiet -- VERSION; then
-            echo "VERSION unchanged; nothing to commit" > /dev/stderr
+            echo "VERSION unchanged; nothing to commit"
           else
-            git add VERSION > /dev/null 2>&1
-            git commit -m "chore(release): update VERSION to $VERSION" > /dev/null 2>&1
-            git push origin main > /dev/null 2>&1
+            git add VERSION
+            git commit -m "chore(release): update VERSION to $VERSION"
+            git push origin HEAD:main
           fi
 
       - name: Create or update GitHub Release
@@ -84,24 +85,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
           PREV_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | awk -v v="$VERSION" '$0!=v{print; exit}') || true
 
           if [ -n "$PREV_TAG" ]; then
-            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' ${PREV_TAG}..${VERSION} || true)
+            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' "${PREV_TAG}..${VERSION}" || true)
           else
-            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' -n 50 ${VERSION} || true)
+            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' -n 50 "${VERSION}" || true)
           fi
 
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "Updating existing release $VERSION"
-            gh release edit "$VERSION" --title "$VERSION" --notes "$NOTES" || true
+            gh release edit "$VERSION" --title "$VERSION" --notes "$NOTES"
           else
             echo "Creating release $VERSION"
-            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" || true
+            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES"
           fi
 
       - name: Set workflow output
         id: set_version
-        run: |
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        run: echo "version=$VERSION" >> $GITHUB_OUTPUT

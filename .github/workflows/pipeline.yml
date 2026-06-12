@@ -1,7 +1,23 @@
 name: pipeline
 
 on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner label (self-hosted ou ubuntu-latest)'
+        required: true
+        type: string
+        default: self-hosted
   workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Runner label (self-hosted ou ubuntu-latest)'
+        required: true
+        type: choice
+        default: self-hosted
+        options:
+          - self-hosted
+          - ubuntu-latest
   push:
     branches: [ main ]
   pull_request:
@@ -10,13 +26,71 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 concurrency:
-  group: image-push-${{ github.repository }}
+  group: ci-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ── Step 1: Versionamento ──────────────────────────────────────
   release:
     uses: ./.github/workflows/release.yml
     with:
-      runner: ubuntu-latest
+      runner: ${{ inputs.runner || 'self-hosted' }}
+    secrets: inherit
+    permissions:
+      contents: write
+
+  # ── Step 2: Build da imagem ────────────────────────────────────
+  buildx:
+    needs: release
+    uses: ./.github/workflows/buildx.yml
+    with:
+      runner: ${{ inputs.runner || 'self-hosted' }}
+      registry_owner: ${{ github.repository_owner }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+
+  # ── Step 3a: Scan de vulnerabilidades (paralelo ao sign) ──────
+  trivy:
+    needs: buildx
+    uses: ./.github/workflows/trivy.yml
+    with:
+      runner: ${{ inputs.runner || 'self-hosted' }}
+      image: ${{ needs.buildx.outputs.image }}
+    secrets: inherit
+    permissions:
+      contents: read
+      security-events: write
+
+  # ── Step 3b: Assinatura cosign (paralelo ao scan) ────────────
+  cosign:
+    needs: buildx
+    uses: ./.github/workflows/cosign.yml
+    with:
+      runner: ${{ inputs.runner || 'self-hosted' }}
+      image: ${{ needs.buildx.outputs.image }}
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+  # ── Step 4: Promote tags (latest + versão) ───────────────────
+  push:
+    needs:
+      - trivy
+      - cosign
+      - release
+    uses: ./.github/workflows/push.yml
+    with:
+      runner: ${{ inputs.runner || 'self-hosted' }}
+      image: ${{ needs.buildx.outputs.image }}
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write

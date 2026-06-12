@@ -10,19 +10,21 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   scan:
     runs-on: ${{ inputs.runner }}
-
     steps:
       - name: Validate input
         run: |
           set -euo pipefail
-
           IMAGE="${{ inputs.image }}"
-
           if [[ "$IMAGE" != *@sha256:* ]]; then
             echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
+            echo "Received: $IMAGE" >&2
             exit 1
           fi
 
@@ -30,11 +32,10 @@ jobs:
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TRIVY_CACHE_DIR: /tmp/.trivy-cache
         run: |
           set -euo pipefail
-
           IMAGE="${{ inputs.image }}"
-
           trivy image \
             --scanners vuln \
             --severity HIGH,CRITICAL \
@@ -42,6 +43,7 @@ jobs:
             --format sarif \
             --output trivy.sarif \
             --no-progress \
+            --cache-dir /tmp/.trivy-cache \
             "$IMAGE"
 
       - name: Upload SARIF to GitHub Security
@@ -58,9 +60,7 @@ jobs:
       - name: Warn on vulnerabilities (non-blocking)
         run: |
           set -euo pipefail
-
           COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy.sarif)
-
           if [ "$COUNT" -gt 0 ]; then
             echo "::warning::$COUNT HIGH/CRITICAL vulnerabilities found"
           else
