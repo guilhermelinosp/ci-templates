@@ -17,8 +17,6 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-
       - name: Block direct push to protected branches
         if: github.event_name == 'push'
         run: |
@@ -31,9 +29,7 @@ jobs:
         run: |
           HEAD="${{ github.head_ref }}"
           BASE="${{ github.base_ref }}"
-
           echo "PR: $HEAD → $BASE"
-
           case "$BASE" in
             staging)
               case "$HEAD" in
@@ -58,7 +54,5 @@ jobs:
             echo "✅ PR title válido: $TITLE"
           else
             echo "❌ PR title deve seguir Conventional Commits: tipo(escopo): descrição"
-            echo "   Ex: feat(auth): adiciona login com Google"
-            echo "   Ex: fix(api): corrige timeout do gateway"
             exit 1
           fi
