@@ -1,6 +1,7 @@
 name: branch-rules
 
 on:
+  workflow_call:
   pull_request:
     types: [opened, synchronize, reopened, edited]
   push:
