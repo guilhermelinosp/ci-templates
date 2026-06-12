@@ -18,11 +18,6 @@ on:
         options:
           - self-hosted
           - ubuntu-latest
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 permissions:
   contents: write
   packages: write
