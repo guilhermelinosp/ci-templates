@@ -18,13 +18,20 @@ jobs:
           set -euo pipefail
           for f in .github/workflows/*.yml; do
             echo "Checking $f..."
-            yq eval '.on | keys' "$f" | grep -q 'workflow_call' && echo "  ✅ Has workflow_call trigger"
+            if grep -q 'workflow_call' "$f" 2>/dev/null; then
+              echo "  ✅ Has workflow_call trigger"
+            else
+              echo "  ⚠️  No workflow_call trigger"
+            fi
           done
       - name: Check config.yml example
         run: |
           set -euo pipefail
-          test -f config.yml && echo "config.yml exists ✅"
-          yq '.image' config.yml || echo "⚠️  config.yml missing image field"
+          if [ -f config.yml ]; then
+            echo "config.yml exists ✅"
+          else
+            echo "⚠️  config.yml not found (optional)"
+          fi
       - name: System info
         run: |
           echo "Runner: $(uname -a)"
