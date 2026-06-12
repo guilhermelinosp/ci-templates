@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - homolog
       - develop
 
 permissions:
@@ -23,7 +22,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           echo "❌ Push direto para ${{ github.ref_name }} não permitido."
-          echo "Crie um PR da sua branch feature/*, hotfix/* ou release/*."
+          echo "Crie um PR da sua branch feature/* ou hotfix/*."
           exit 1
 
       - name: Validate branch name
@@ -41,16 +40,10 @@ jobs:
                 *) echo "❌ Para develop, use branches feature/* ou bugfix/*"; exit 1 ;;
               esac
               ;;
-              homolog)
-              case "$HEAD" in
-                develop|hotfix/*) echo "✅ Válido: $HEAD → homolog" ;;
-                *) echo "❌ Para homolog, use develop ou hotfix/*"; exit 1 ;;
-              esac
-              ;;
             main)
               case "$HEAD" in
-                homolog|hotfix/*) echo "✅ Válido: $HEAD → main" ;;
-                *) echo "❌ Para main, use homolog ou hotfix/*"; exit 1 ;;
+                develop|hotfix/*) echo "✅ Válido: $HEAD → main" ;;
+                *) echo "❌ Para main, use develop ou hotfix/*"; exit 1 ;;
               esac
               ;;
             *) echo "❌ Base branch inválida: $BASE"; exit 1 ;;
