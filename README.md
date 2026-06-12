@@ -1,115 +1,45 @@
 # CI Templates
 
-Pipeline reutilizável para build, scan, assinatura e publicação de imagens Docker no GitHub Container Registry (GHCR).
-
-## Workflows
-
-| Workflow | Tipo | Descrição |
-|---|---|---|
-| `pipeline.yml` | **Orchestrator** | Pipeline completa: release → buildx → trivy + cosign → push |
-| `release.yml` | reusable | Semver bump, git tag, GitHub Release, VERSION file |
-| `buildx.yml` | reusable | Build multi-arch com SBOM, provenance e cache registry |
-| `trivy.yml` | reusable | Scan de vulnerabilidades HIGH/CRITICAL com SARIF |
-| `cosign.yml` | reusable | Assinatura keyless (sigstore) em modo OCI referrers |
-| `push.yml` | reusable | Promote image digest para latest + versão |
-| `docs.yml` | reusable | Build + deploy MkDocs para GitHub Pages |
-
-## Como usar
-
-### Em um repositório de app
-
-Crie `.github/workflows/ci.yml`:
-
-```yaml
-name: CI
-on:
-  push:
-    branches: [ main ]
-jobs:
-  ci:
-    uses: guilhermelinosp/ci-templates/.github/workflows/pipeline.yml@main
-    with:
-      runner: self-hosted
-    secrets: inherit
-```
-
-### Configuração
-
-Crie `config.yml` na raiz do seu repositório:
-
-```yaml
-image: nome-da-imagem
-```
-
-Se `config.yml` não existir, usa o nome do próprio repositório.
-
-### Pré-requisitos
-
-- Dockerfile na raiz do repositório
-- GitHub Actions habilitado
-- ARC runner (self-hosted) ou `ubuntu-latest`
-- Permissões: `contents: write`, `packages: write`, `id-token: write`
-
-## Pipeline flow
-
-```
-push/PR → pipeline.yml
-            │
-            ├── release.yml  → v1.2.3
-            │
-            ├── buildx.yml   → ghcr.io/owner/image@sha256:abc...
-            │
-            ├─┬ trivy.yml    → SARIF → GitHub Security
-            │ └ cosign.yml   → Signature → OCI referrers
-            │
-            └── push.yml     → ghcr.io/owner/image:latest
-                              → ghcr.io/owner/image:v1.2.3
-```
+Pipeline reutilizável para build, scan, assinatura e publicação de imagens Docker no GitHub Container Registry (GHCR), com git flow integrado.
 
 ## Git Flow
 
 ### Branches
 
-| Branch | Uso | Quem cria PR |
+| Branch | Uso | Recebe PR de |
 |---|---|---|
 | `main` | Produção | `staging` ou `hotfix/*` |
 | `staging` | Desenvolvimento contínuo | `feature/*` ou `bugfix/*` |
 | `feature/*` | Nova funcionalidade | — |
-| `hotfix/*` | Correção urgente em produção | — |
+| `hotfix/*` | Correção urgente | — |
 
 ### Fluxo
 
 ```
 feature/login → PR → staging
                         ↓
-                  staging → PR → main (tag automática via release-please)
-                        ↓
-                  main → sync staging
+                  staging → PR → main
+                                    ↓
+                              release-please 🤖
+                              ├── Calcula próxima versão (SemVer)
+                              ├── Gera changelog automático
+                              ├── Cria GitHub Release
+                              └── Cria tag vX.Y.Z
+                                    ↓
+                              main → sync staging
 
-hotfix/crash → PR → main (tag automática) → sync staging
-```
-feature/login → PR → develop
-                        ↓
-                  develop → PR → homolog (testes)
-                                    ↓
-                              homolog → PR → main (tag automática via release-please)
-                                    ↓
-                              main → sync develop, homolog
+hotfix/crash → PR → main (release-please) → sync staging
 ```
 
 ### Versionamento (SemVer + Release Please)
 
-O versionamento é **automático** via `release-please` ao mergear para `main`:
+Automático via `googleapis/release-please-action`:
 
-- `MAJOR` — commit com `BREAKING CHANGE:` ou `!` no escopo
-- `MINOR` — commit `feat:`
-- `PATCH` — commit `fix:`
-
-Release-please:
-1. Escaneia commits desde o último tag
-2. Calcula próxima versão (SemVer)
-3. Abre/atualiza Release PR com changelog
-4. Quando mergeado → cria GitHub Release + tag
+| Convencional Commits | Versão |
+|---|---|
+| `fix:` | PATCH (1.0.0 → 1.0.1) |
+| `feat:` | MINOR (1.0.0 → 1.1.0) |
+| `BREAKING CHANGE` ou `feat!:` | MAJOR (1.0.0 → 2.0.0) |
 
 ### Conventional Commits
 
@@ -119,24 +49,132 @@ fix(api): corrige timeout do gateway
 docs(readme): atualiza documentação
 refactor(user): simplifica validação
 test(auth): adiciona testes de login
+BREAKING CHANGE: altera formato da response
 ```
 
-### Regras (via GitHub Actions)
+## Workflows
 
-Os workflows `branch-rules.yml` e `merge-check.yml` validam:
+### CI / Validação
 
-1. **Push direto** em `main`, `homolog`, `develop` → ❌ bloqueado
-2. **Nome da branch** no PR → deve seguir o padrão (`feature/*` → `develop`, etc.)
-3. **PR title** → deve seguir Conventional Commits
-4. **Commits** → devem seguir Conventional Commits (ignora merges)
-5. **PR template** → checklist obrigatório
+| Workflow | Evento | Descrição |
+|---|---|---|
+| `branch-rules.yml` | push + PR | Bloqueia push direto em `main`/`staging`, valida nomes de branch e PR title |
+| `merge-check.yml` | PR | Valida Conventional Commits nos commits do PR |
 
-Ative esses workflows adicionando no seu repositório:
+### Pipeline de Imagem
+
+| Workflow | Tipo | Descrição |
+|---|---|---|
+| `pipeline.yml` | **Orchestrator** | release → buildx → trivy + cosign → push |
+| `release.yml` | reusable | Semver bump, git tag, GitHub Release |
+| `buildx.yml` | reusable | Build multi-arch com SBOM, provenance e cache registry |
+| `trivy.yml` | reusable | Scan vulnerabilidades HIGH/CRITICAL (SARIF → GitHub Security) |
+| `cosign.yml` | reusable | Assinatura keyless (sigstore) em modo OCI referrers |
+| `push.yml` | reusable | Promote image digest para tags latest + versão |
+| `release-please.yml` | reusable | Versionamento + changelog automático no merge pra main |
+
+### Outros
+
+| Workflow | Tipo | Descrição |
+|---|---|---|
+| `docs.yml` | reusable | Build + deploy MkDocs para GitHub Pages |
+
+### Pipeline flow
+
+```
+push/PR → pipeline.yml (runner: self-hosted)
+            │
+            ├── release.yml      → v1.2.3
+            ├── buildx.yml       → ghcr.io/owner/app@sha256:abc...
+            ├─┬ trivy.yml (par.) → SARIF → GitHub Security
+            │ └ cosign.yml (par.)→ Signature → OCI referrers
+            └── push.yml         → promote latest + v1.2.3
+```
+
+## Como usar
+
+### Em um repositório de app
+
+Crie `.github/workflows/ci.yml`:
 
 ```yaml
-# .github/workflows/ci.yml
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [staging]
+
 jobs:
   validate:
     uses: guilhermelinosp/ci-templates/.github/workflows/branch-rules.yml@main
     secrets: inherit
+  merge-check:
+    uses: guilhermelinosp/ci-templates/.github/workflows/merge-check.yml@main
+    secrets: inherit
 ```
+
+### Release automática
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+on:
+  push:
+    branches: [main]
+jobs:
+  release:
+    uses: guilhermelinosp/ci-templates/.github/workflows/release-please.yml@main
+    secrets: inherit
+```
+
+### Pipeline de imagem (após release)
+
+```yaml
+# .github/workflows/build.yml
+name: Build
+on:
+  release:
+    types: [published]
+jobs:
+  pipeline:
+    uses: guilhermelinosp/ci-templates/.github/workflows/pipeline.yml@main
+    with:
+      runner: self-hosted
+    secrets: inherit
+```
+
+### Setup inicial do repositório
+
+```bash
+git clone git@github.com:guilhermelinosp/meu-repo.git
+cd meu-repo
+git checkout -b staging && git push origin staging
+git checkout main
+```
+
+## Configuração
+
+Crie `config.yml` na raiz do repositório:
+
+```yaml
+image: nome-da-imagem
+```
+
+Se `config.yml` não existir, usa o nome do próprio repositório como fallback.
+
+## Pré-requisitos
+
+- Dockerfile na raiz do repositório
+- GitHub Actions habilitado
+- ARC runner (self-hosted) ou `ubuntu-latest`
+- Permissões: `contents: write`, `packages: write`, `id-token: write`
+
+## ADRs
+
+| Documento | Gist |
+|---|---|
+| ADR-001: Alloy OTLP Gateway | https://gist.github.com/guilhermelinosp/09b474deeceaab3984225a22bf657347 |
+| ADR-002: ARC + Auto-Runners | https://gist.github.com/guilhermelinosp/ec92d1edcfcccaf4fb87ca6ea46e01ba |
+| ADR-003: Git Flow + Branching | https://gist.github.com/guilhermelinosp/b32f0681a03eb0fefe5f6a237b0c4ee5 |
