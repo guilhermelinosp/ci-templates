@@ -72,21 +72,21 @@ push/PR → pipeline.yml
 
 | Branch | Uso | Quem cria PR |
 |---|---|---|
-| `main` | Produção | `develop` ou `hotfix/*` |
-| `develop` | Desenvolvimento contínuo | `feature/*` ou `bugfix/*` |
+| `main` | Produção | `staging` ou `hotfix/*` |
+| `staging` | Desenvolvimento contínuo | `feature/*` ou `bugfix/*` |
 | `feature/*` | Nova funcionalidade | — |
 | `hotfix/*` | Correção urgente em produção | — |
 
 ### Fluxo
 
 ```
-feature/login → PR → develop
+feature/login → PR → staging
                         ↓
-                  develop → PR → main (tag automática via release-please)
+                  staging → PR → main (tag automática via release-please)
                         ↓
-                  main → sync develop
+                  main → sync staging
 
-hotfix/crash → PR → main (tag automática) → sync develop
+hotfix/crash → PR → main (tag automática) → sync staging
 ```
 feature/login → PR → develop
                         ↓

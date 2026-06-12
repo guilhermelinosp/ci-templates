@@ -6,7 +6,7 @@ on:
   push:
     branches:
       - main
-      - develop
+      - staging
 
 permissions:
   contents: read
@@ -34,16 +34,16 @@ jobs:
           echo "PR: $HEAD → $BASE"
 
           case "$BASE" in
-            develop)
+            staging)
               case "$HEAD" in
-                feature/*|bugfix/*) echo "✅ Válido: $HEAD → develop" ;;
-                *) echo "❌ Para develop, use branches feature/* ou bugfix/*"; exit 1 ;;
+                feature/*|bugfix/*) echo "✅ Válido: $HEAD → staging" ;;
+                *) echo "❌ Para staging, use branches feature/* ou bugfix/*"; exit 1 ;;
               esac
               ;;
             main)
               case "$HEAD" in
-                develop|hotfix/*) echo "✅ Válido: $HEAD → main" ;;
-                *) echo "❌ Para main, use develop ou hotfix/*"; exit 1 ;;
+                staging|hotfix/*) echo "✅ Válido: $HEAD → main" ;;
+                *) echo "❌ Para main, use staging ou hotfix/*"; exit 1 ;;
               esac
               ;;
             *) echo "❌ Base branch inválida: $BASE"; exit 1 ;;

@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize]
     branches:
-      - develop
+      - staging
       - main
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
           COMMITS=$(git log --oneline origin/$BASE..HEAD 2>/dev/null | wc -l)
           echo "Commits a mesclar: $COMMITS"
 
-      - name: Ensure develop is up to date
+      - name: Ensure staging is up to date
         if: github.base_ref == 'main'
         run: |
           echo "✅ PR aprovado para ${{ github.base_ref }}"
