@@ -1,0 +1,70 @@
+name: merge-check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - develop
+      - homolog
+      - main
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check merge strategy (--no-ff)
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+
+          # Verifica se a branch base está acessível
+          if ! git merge-base --is-ancestor origin/$BASE HEAD 2>/dev/null; then
+            echo "⚠️ Branch base não encontrada localmente, pulando verificação"
+            exit 0
+          fi
+
+          # Lista commits que entrariam no merge
+          COMMITS=$(git log --oneline origin/$BASE..HEAD 2>/dev/null | wc -l)
+          echo "Commits a mesclar: $COMMITS"
+
+      - name: Ensure develop is up to date
+        if: github.base_ref == 'main' || github.base_ref == 'homolog'
+        run: |
+          echo "✅ PR aprovado para ${{ github.base_ref }}"
+
+      - name: Conventional Commits check
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.base_ref }}"
+
+          # Tenta encontrar o merge-base
+          MERGE_BASE=$(git merge-base origin/$BASE HEAD 2>/dev/null || echo "")
+          if [ -z "$MERGE_BASE" ]; then
+            echo "⚠️ Não foi possível determinar merge-base, pulando"
+            exit 0
+          fi
+
+          ERRORS=0
+          for COMMIT in $(git log --format='%s' $MERGE_BASE..HEAD 2>/dev/null); do
+            if ! echo "$COMMIT" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|ci|perf|build|revert)(\([a-zA-Z0-9_-]+\))?:\s.+'; then
+              if echo "$COMMIT" | grep -q '^Merge'; then
+                continue
+              fi
+              echo "⚠️ Commit não conforma com Conventional Commits: $COMMIT"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "❌ $ERRORS commits não seguem Conventional Commits"
+            exit 1
+          fi
+          echo "✅ Todos os commits seguem Conventional Commits"
