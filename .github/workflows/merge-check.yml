@@ -49,7 +49,7 @@ jobs:
 
           ERRORS=0
           for COMMIT in $(git log --format='%s' $MERGE_BASE..HEAD 2>/dev/null); do
-            if ! echo "$COMMIT" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|ci|perf|build|revert)(\([a-zA-Z0-9_-]+\))?:\s.+'; then
+            if ! echo "$COMMIT" | grep -qE '^(feat|fix|docs|style|ref|refactor|test|chore|ci|perf|build|revert)(\([a-zA-Z0-9_-]+\))?:\s.+'; then
               if echo "$COMMIT" | grep -q '^Merge'; then
                 continue
               fi

@@ -44,7 +44,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           TITLE="${{ github.event.pull_request.title }}"
-          if echo "$TITLE" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|ci|perf|build|revert)\([a-zA-Z0-9_-]+\):\s.+'; then
+          if echo "$TITLE" | grep -qE '^(feat|fix|docs|style|ref|refactor|test|chore|ci|perf|build|revert)\([a-zA-Z0-9_-]+\):\s.+'; then
             echo "✅ PR title válido: $TITLE"
           else
             echo "❌ PR title deve seguir Conventional Commits: tipo(escopo): descrição"
