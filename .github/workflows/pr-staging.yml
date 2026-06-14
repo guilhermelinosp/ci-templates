@@ -16,8 +16,8 @@ jobs:
           HEAD="${{ github.head_ref }}"
           echo "Branch: $HEAD → staging"
           case "$HEAD" in
-            feature/*|bugfix/*|fix/*|chore/*) echo "✅ $HEAD → staging" ;;
-            *) echo "❌ Para staging, use feature/*, bugfix/*, fix/* ou chore/*"; exit 1 ;;
+            feat/*) echo "✅ $HEAD → staging" ;;
+            *) echo "❌ Para staging, use feat/*"; exit 1 ;;
           esac
 
       - name: Validate PR title
