@@ -2,6 +2,9 @@ name: release-please
 
 on:
   workflow_call:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
