@@ -1,49 +1,51 @@
 name: release
 
 on:
-  push:
-    branches: [main]
   workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
     outputs:
-      tag:
-        description: "Version tag criada (ex: v1.2.3)"
-        value: ${{ jobs.release.outputs.tag }}
+      version:
+        value: ${{ jobs.release.outputs.version }}
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     outputs:
-      tag: ${{ steps.semver.outputs.tag }}
+      version: ${{ steps.semver.outputs.tag }}
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0, token: "${{ github.token }}" }
-
       - name: Bump version
         id: semver
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           HEAD=$(git rev-parse HEAD)
+          HAS_TAG=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
           if git tag --points-at "$HEAD" 2>/dev/null | grep -q .; then
             echo "Commit já tem tag, pulando"
             echo "tag=$(git tag --points-at "$HEAD" | head -1)" >> $GITHUB_OUTPUT
             exit 0
           fi
-          L=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          L=$HAS_TAG
           [ -z "$L" ] && echo "tag=v1.0.1" >> $GITHUB_OUTPUT && exit 0
           IFS='.' read -r M m p <<< "${L#v}"; M=${M:-1}; m=${m:-0}; p=${p:-0}
           git log --format="%s" "$L..HEAD" 2>/dev/null | grep -q "BREAKING CHANGE\|!:" && { M=$((M+1)); m=0; p=0; } \
             || git log --format="%s" "$L..HEAD" 2>/dev/null | grep -q "^feat" && { m=$((m+1)); p=0; } \
             || p=$((p+1))
           echo "tag=v${M}.${m}.${p}" >> $GITHUB_OUTPUT
-
       - name: Create release
         if: steps.semver.outputs.tag != ''
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          gh release create "${{ steps.semver.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --title "${{ steps.semver.outputs.tag }}" \
-            --generate-notes
+          gh release create "${{ steps.semver.outputs.tag }}" --repo "${{ github.repository }}" --title "${{ steps.semver.outputs.tag }}" --generate-notes
+      - name: Update latest tag
+        if: steps.semver.outputs.tag != ''
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          git tag -f latest && git push origin latest --force

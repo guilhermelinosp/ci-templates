@@ -21,6 +21,8 @@ permissions:
 jobs:
   push:
     runs-on: ${{ inputs.runner }}
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Login GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -29,6 +31,7 @@ jobs:
           SRC="${{ inputs.image }}"
           DST="ghcr.io/${{ github.repository }}"
           docker buildx imagetools create --tag "$DST:latest" --tag "$DST:${GITHUB_SHA::7}" "$SRC"
-          if [ -n "${{ inputs.version }}" ]; then
-            docker buildx imagetools create --tag "$DST:${{ inputs.version }}" "$SRC"
+          TAG="${{ inputs.version }}"
+          if [ -n "$TAG" ]; then
+            docker buildx imagetools create --tag "$DST:$TAG" "$SRC"
           fi

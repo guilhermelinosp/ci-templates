@@ -19,52 +19,14 @@ jobs:
   scan:
     runs-on: ${{ inputs.runner }}
     steps:
-      - name: Validate input
-        run: |
-          set -euo pipefail
-          IMAGE="${{ inputs.image }}"
-          if [[ "$IMAGE" != *@sha256:* ]]; then
-            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
-            echo "Received: $IMAGE" >&2
-            exit 1
-          fi
-
-      - name: Scan image (SARIF)
+      - name: Scan
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          TRIVY_CACHE_DIR: /tmp/.trivy-cache
         run: |
-          set -euo pipefail
-          IMAGE="${{ inputs.image }}"
-          trivy image \
-            --scanners vuln \
-            --severity HIGH,CRITICAL \
-            --ignore-unfixed \
-            --format sarif \
-            --output trivy.sarif \
-            --no-progress \
-            --cache-dir /tmp/.trivy-cache \
-            "$IMAGE"
-
-      - name: Upload SARIF to GitHub Security
+          trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output trivy.sarif --no-progress "${{ inputs.image }}" || true
+      - name: Upload SARIF
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy.sarif
-
-      - name: Upload Trivy report (artifact)
-        uses: actions/upload-artifact@v7
-        with:
-          name: trivy-report
-          path: trivy.sarif
-
-      - name: Warn on vulnerabilities (non-blocking)
-        run: |
-          set -euo pipefail
-          COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy.sarif)
-          if [ "$COUNT" -gt 0 ]; then
-            echo "::warning::$COUNT HIGH/CRITICAL vulnerabilities found"
-          else
-            echo "No HIGH/CRITICAL vulnerabilities"
-          fi

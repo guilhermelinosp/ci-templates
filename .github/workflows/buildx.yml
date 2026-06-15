@@ -11,7 +11,6 @@ on:
         type: string
     outputs:
       image:
-        description: "Imagem no formato ghcr.io/owner/repo@sha256:digest"
         value: ${{ jobs.buildx.outputs.image }}
 
 permissions:
@@ -28,8 +27,17 @@ jobs:
       - name: Login GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Setup buildx
-        run: docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
-      - name: Build and push (latest)
+        run: |
+          SRC=/usr/libexec/docker/cli-plugins/docker-buildx
+          DST=/usr/local/lib/docker/cli-plugins/docker-buildx
+          if [ ! -f "$DST" ] && [ -f "$SRC" ]; then
+            mkdir -p /usr/local/lib/docker/cli-plugins && cp "$SRC" "$DST" && chmod +x "$DST"
+          fi
+          if ! docker buildx version &>/dev/null; then
+            curl -fsSL "https://github.com/docker/buildx/releases/download/v0.33.0/buildx-v0.33.0.linux-amd64" -o "$DST" && chmod +x "$DST"
+          fi
+          docker buildx version && docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
+      - name: Build and push
         run: |
           docker buildx build --platform linux/amd64 --push --attest type=sbom --attest type=provenance,mode=max \
             -t "ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}:latest" .
