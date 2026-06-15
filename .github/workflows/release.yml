@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     outputs:
       version: ${{ steps.semver.outputs.tag }}
     steps:
