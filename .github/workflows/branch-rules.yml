@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - run: |
           H="${{ github.head_ref }}"; B="${{ github.base_ref }}"
