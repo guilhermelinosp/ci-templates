@@ -45,7 +45,6 @@ jobs:
         run: |
           gh release create "${{ steps.semver.outputs.tag }}" --repo "${{ github.repository }}" --title "${{ steps.semver.outputs.tag }}" --generate-notes
       - name: Update latest tag
-        if: steps.semver.outputs.tag != ''
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           git tag -f latest && git push origin latest --force
