@@ -19,6 +19,12 @@ jobs:
   scan:
     runs-on: ${{ inputs.runner }}
     steps:
+      - name: Install trivy
+        run: |
+          if ! command -v trivy &>/dev/null; then
+            curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz" -o /tmp/trivy.tar.gz
+            tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy && chmod +x /usr/local/bin/trivy 2>/dev/null || true
+          fi
       - name: Scan
         env:
           TRIVY_USERNAME: ${{ github.actor }}
