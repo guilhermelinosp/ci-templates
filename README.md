@@ -5,14 +5,14 @@ Templates reutilizáveis de CI/CD para GitHub Actions.
 ## Git Flow
 
 ```
-feature/* → PR → staging → PR → main → release automática 🏷️
-hotfix/*  → PR → main → release automática → sync staging
+feature/* → PR → main → PR → main → release automática 🏷️
+hotfix/*  → PR → main → release automática → sync main
 ```
 
 | Branch | Uso | Quem cria PR |
 |---|---|---|
-| `main` | Produção | `staging` ou `hotfix/*` |
-| `staging` | Desenvolvimento | `feature/*` |
+| `main` | Produção | `main` ou `hotfix/*` |
+| `main` | Desenvolvimento | `feature/*` |
 | `feature/*` | Nova funcionalidade | — |
 | `hotfix/*` | Correção urgente | — |
 
@@ -46,7 +46,7 @@ name: pipeline
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main, staging]
+    branches: [main, main]
   push:
     branches: [main]
 
@@ -67,7 +67,7 @@ jobs:
       - run: |
           H="${{ github.head_ref }}"; B="${{ github.base_ref }}"
           echo "PR: $H → $B"
-          [ "$H" = "staging" ] && [ "$B" = "main" ] && echo "✅ staging→main" && exit 0
+          [ "$H" = "main" ] && [ "$B" = "main" ] && echo "✅ main→main" && exit 0
           case "$H" in feat/*) echo "✅ $H" ;; *) echo "❌ Use feat/*"; exit 1 ;; esac
           echo "${{ github.event.pull_request.title }}" | grep -qE '^(feat|fix|docs|style|ref|refactor|test|chore|ci|perf|build|revert)(\(.+\))?!?:\s.+' && echo "✅ title" || { echo "❌ CC"; exit 1; }
 
@@ -104,7 +104,7 @@ jobs:
 
   release:
     needs: [buildx, trivy]
-    if: github.ref == 'refs/heads/main' || (github.base_ref == 'main' && github.head_ref == 'staging')
+    if: github.ref == 'refs/heads/main' || (github.base_ref == 'main' && github.head_ref == 'main')
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.semver.outputs.tag }}
@@ -136,7 +136,7 @@ jobs:
 
   push:
     needs: [buildx, release]
-    if: github.event_name == 'push' || (github.base_ref == 'main' && github.head_ref == 'staging')
+    if: github.event_name == 'push' || (github.base_ref == 'main' && github.head_ref == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Login GHCR
