@@ -2,105 +2,46 @@ name: release
 
 on:
   workflow_call:
-    inputs:
-      runner:
-        required: true
-        type: string
     outputs:
-      version:
-        value: ${{ jobs.release.outputs.version }}
+      tag:
+        description: "Version tag criada (ex: v1.2.3)"
+        value: ${{ jobs.release.outputs.tag }}
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: ${{ inputs.runner }}
+    runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.set_version.outputs.version }}
+      tag: ${{ steps.semver.outputs.tag }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+        with: { fetch-depth: 0, token: "${{ github.token }}" }
 
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Create version tag
+      - name: Bump version
         id: semver
+        env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          set -euo pipefail
-
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            git fetch --tags 2>/dev/null || true
-            LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1 || true)
-
-            if [ -z "$LATEST_TAG" ]; then
-              VERSION="v1.0.0"
-            else
-              TAG_NUM=${LATEST_TAG#v}
-              IFS='.' read -r MAJOR MINOR PATCH <<< "$TAG_NUM"
-              PATCH=$((PATCH + 1))
-              VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-            fi
+          HEAD=$(git rev-parse HEAD)
+          if git tag --points-at "$HEAD" 2>/dev/null | grep -q .; then
+            echo "Commit já tem tag, pulando"
+            echo "tag=$(git tag --points-at "$HEAD" | head -1)" >> $GITHUB_OUTPUT
+            exit 0
           fi
+          L=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          [ -z "$L" ] && echo "tag=v1.0.1" >> $GITHUB_OUTPUT && exit 0
+          IFS='.' read -r M m p <<< "${L#v}"; M=${M:-1}; m=${m:-0}; p=${p:-0}
+          git log --format="%s" "$L..HEAD" 2>/dev/null | grep -q "BREAKING CHANGE\|!:" && { M=$((M+1)); m=0; p=0; } \
+            || git log --format="%s" "$L..HEAD" 2>/dev/null | grep -q "^feat" && { m=$((m+1)); p=0; } \
+            || p=$((p+1))
+          echo "tag=v${M}.${m}.${p}" >> $GITHUB_OUTPUT
 
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Tag commit
+      - name: Create release
+        if: steps.semver.outputs.tag != ''
+        env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          set -euo pipefail
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-
-      - name: Update latest tag
-        run: |
-          set -euo pipefail
-          git tag -f latest
-          git push origin latest --force
-
-      - name: Update VERSION file on main
-        run: |
-          set -euo pipefail
-          git fetch origin main
-          git checkout origin/main
-          echo "$VERSION" > VERSION
-
-          if git diff --quiet -- VERSION; then
-            echo "VERSION unchanged; nothing to commit"
-          else
-            git add VERSION
-            git commit -m "chore(release): update VERSION to $VERSION"
-            git push origin HEAD:main
-          fi
-
-      - name: Create or update GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          PREV_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | awk -v v="$VERSION" '$0!=v{print; exit}') || true
-
-          if [ -n "$PREV_TAG" ]; then
-            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' "${PREV_TAG}..${VERSION}" || true)
-          else
-            NOTES=$(git log --no-merges --pretty=format:'- %s (%h)' -n 50 "${VERSION}" || true)
-          fi
-
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "Updating existing release $VERSION"
-            gh release edit "$VERSION" --title "$VERSION" --notes "$NOTES"
-          else
-            echo "Creating release $VERSION"
-            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES"
-          fi
-
-      - name: Set workflow output
-        id: set_version
-        run: echo "version=$VERSION" >> $GITHUB_OUTPUT
+          gh release create "${{ steps.semver.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --title "${{ steps.semver.outputs.tag }}" \
+            --generate-notes

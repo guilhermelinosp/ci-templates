@@ -10,40 +10,25 @@ on:
         required: true
         type: string
       version:
-        required: true
+        required: false
         type: string
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   push:
     runs-on: ${{ inputs.runner }}
-
     steps:
-      - name: Authenticate to GHCR
+      - name: Login GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Promote tags
         run: |
-          set -euo pipefail
-          echo "::add-mask::${{ secrets.GITHUB_TOKEN }}"
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Validate input
-        run: |
-          set -euo pipefail
-
-          IMAGE="${{ inputs.image }}"
-
-          if [[ "$IMAGE" != *@sha256:* ]]; then
-            echo "Image must be a digest (ghcr.io/...@sha256:...)" >&2
-            exit 1
-          fi
-
-      - name: Promote image (latest + version)
-        run: |
-          set -euo pipefail
-
           SRC="${{ inputs.image }}"
           DST="ghcr.io/${{ github.repository }}"
-          VERSION="${{ inputs.version }}"
-
-          docker buildx imagetools create \
-            --tag "$DST:latest" \
-            --tag "$DST:$VERSION" \
-            "$SRC"
+          docker buildx imagetools create --tag "$DST:latest" --tag "$DST:${GITHUB_SHA::7}" "$SRC"
+          if [ -n "${{ inputs.version }}" ]; then
+            docker buildx imagetools create --tag "$DST:${{ inputs.version }}" "$SRC"
+          fi
