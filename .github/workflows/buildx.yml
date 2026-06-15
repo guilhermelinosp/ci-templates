@@ -29,9 +29,9 @@ jobs:
       - name: Setup buildx
         run: |
           SRC=/usr/libexec/docker/cli-plugins/docker-buildx
-          DST=/usr/local/lib/docker/cli-plugins/docker-buildx
+          DST=$HOME/.docker/cli-plugins/docker-buildx
           if [ ! -f "$DST" ] && [ -f "$SRC" ]; then
-            mkdir -p /usr/local/lib/docker/cli-plugins && cp "$SRC" "$DST" && chmod +x "$DST"
+            mkdir -p ~/.docker/cli-plugins && cp "$SRC" "$DST" && chmod +x "$DST"
           fi
           if ! docker buildx version &>/dev/null; then
             curl -fsSL "https://github.com/docker/buildx/releases/download/v0.33.0/buildx-v0.33.0.linux-amd64" -o "$DST" && chmod +x "$DST"
