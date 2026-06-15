@@ -161,3 +161,4 @@ jobs:
 | ADR-003: Git Flow | https://gist.github.com/guilhermelinosp/b32f0681a03eb0fefe5f6a237b0c4ee5 |
 # Mon Jun 15 13:53:14 -03 2026
 # test Mon Jun 15 14:01:25 -03 2026
+# self-hosted test Mon Jun 15 17:31:31 -03 2026
