@@ -1,0 +1,48 @@
+name: vault-auth
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+      login_minio:
+        required: false
+        type: boolean
+        default: false
+      login_ghcr:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  VAULT_SKIP_VERIFY: "true"
+
+jobs:
+  auth:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Login Vault
+        run: |
+          vault login "$VAULT_TOKEN"
+
+      - name: Login MinIO
+        if: ${{ inputs.login_minio }}
+        run: |
+          ENDPOINT=$(vault kv get -field=endpoint_url kv/minio/creds)
+          ACCESS_KEY=$(vault kv get -field=access_key_id kv/minio/creds)
+          SECRET_KEY=$(vault kv get -field=secret_access_key kv/minio/creds)
+          mc alias set minio "$ENDPOINT" "$ACCESS_KEY" "$SECRET_KEY" --insecure
+          echo "MINIO_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
+          echo "MINIO_ACCESS_KEY=$ACCESS_KEY" >> $GITHUB_ENV
+          echo "MINIO_SECRET_KEY=$SECRET_KEY" >> $GITHUB_ENV
+
+      - name: Login GHCR
+        if: ${{ inputs.login_ghcr }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
