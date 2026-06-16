@@ -43,16 +43,12 @@ jobs:
           fi
           docker buildx version && docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
       - name: Build and push
-        env:
-          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           CACHE_ARGS=""
           if [ -n "$S3_ENDPOINT_URL" ] && [ -n "$AWS_ACCESS_KEY_ID" ]; then
             REPO_PREFIX="${{ github.repository }}"
-            CACHE_ARGS="--cache-to type=s3,bucket=docker-cache,region=us-east-1,endpoint_url=$S3_ENDPOINT_URL,prefix=${REPO_PREFIX}/,mode=max \
-              --cache-from type=s3,bucket=docker-cache,region=us-east-1,endpoint_url=$S3_ENDPOINT_URL,prefix=${REPO_PREFIX}/"
+            CACHE_ARGS="--cache-to type=s3,bucket=docker-cache,region=${AWS_REGION:-us-east-1},endpoint_url=$S3_ENDPOINT_URL,prefix=${REPO_PREFIX}/,mode=max \
+              --cache-from type=s3,bucket=docker-cache,region=${AWS_REGION:-us-east-1},endpoint_url=$S3_ENDPOINT_URL,prefix=${REPO_PREFIX}/"
           fi
           docker buildx build --platform linux/amd64 --push --attest type=sbom --attest type=provenance,mode=max \
             $CACHE_ARGS \
