@@ -44,7 +44,14 @@ jobs:
           docker buildx version && docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
       - name: Build and push
         run: |
+          CACHE_ARGS=""
+          if [ -n "$S3_ENDPOINT_URL" ] && [ -n "$AWS_ACCESS_KEY_ID" ]; then
+            REPO_PREFIX="${{ github.repository }}"
+            CACHE_ARGS="--cache-to type=s3,bucket=docker-cache,region=${AWS_REGION:-us-east-1},endpoint_url=$S3_ENDPOINT_URL,use_path_style=true,prefix=${REPO_PREFIX}/,mode=max \
+              --cache-from type=s3,bucket=docker-cache,region=${AWS_REGION:-us-east-1},endpoint_url=$S3_ENDPOINT_URL,use_path_style=true,prefix=${REPO_PREFIX}/"
+          fi
           docker buildx build --platform linux/amd64 --push --attest type=sbom --attest type=provenance,mode=max \
+            $CACHE_ARGS \
             -t "ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}:latest" .
       - name: Export digest
         id: export
