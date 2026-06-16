@@ -1,0 +1,59 @@
+name: auto-pr
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create or update PR to main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH="${{ github.ref_name }}"
+
+          echo "Branch: $BRANCH"
+
+          # Valida prefixo
+          case "$BRANCH" in
+            feat/*|fix/*) echo "✅ Prefixo valido" ;;
+            *) echo "⚠️  Prefixo nao reconhecido, criando PR mesmo assim" ;;
+          esac
+
+          # Verifica se PR ja existe
+          EXISTING=$(gh pr list --head "$BRANCH" --json number,title --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING ja existe para $BRANCH — atualizando descricao"
+            gh pr edit "$EXISTING" \
+              --body "Auto-generated PR from \`$BRANCH\`." 2>/dev/null || true
+            echo "pr_number=$EXISTING" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Pega primeiro commit como titulo (fallback)
+          TITLE=$(git log --format="%s" origin/main..HEAD 2>/dev/null | tail -1 || echo "")
+          if [ -z "$TITLE" ]; then
+            TITLE="chore: auto PR from $BRANCH"
+          fi
+
+          # Cria PR
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "$TITLE" \
+            --body "Auto-generated PR from \`$BRANCH\`.
+
+## Checklist
+- [ ] Code review
+- [ ] Tests passing
+- [ ] Merge approved" || echo "⚠️  Nao foi possivel criar PR (pode ja existir)"
