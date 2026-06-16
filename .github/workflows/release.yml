@@ -32,18 +32,30 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           HEAD=$(git rev-parse HEAD)
-          HAS_TAG=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
-          if git tag --points-at "$HEAD" 2>/dev/null | grep -q .; then
-            echo "Commit já tem tag, pulando"
-            echo "tag=$(git tag --points-at "$HEAD" | head -1)" >> $GITHUB_OUTPUT
+
+          # Se commit já tem tag, pula
+          TAG_EXISTENTE=$(git tag --points-at "$HEAD" 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
+          if [ -n "$TAG_EXISTENTE" ]; then
+            echo "Commit já tem tag $TAG_EXISTENTE — pulando"
+            echo "tag=$TAG_EXISTENTE" >> $GITHUB_OUTPUT
             exit 0
           fi
-          L=$HAS_TAG
-          [ -z "$L" ] && echo "tag=v1.0.1" >> $GITHUB_OUTPUT && exit 0
-          IFS='.' read -r M m p <<< "${L#v}"; M=${M:-1}; m=${m:-0}; p=${p:-0}
-          git log --format="%s" "$L..HEAD" 2>/dev/null | grep -q "BREAKING CHANGE\|!:" && { M=$((M+1)); m=0; p=0; } \
-            || git log --format="%s" "$L..HEAD" 2>/dev/null | grep -q "^feat" && { m=$((m+1)); p=0; } \
+
+          # Pega ultima tag semver (vX.Y.Z), ignorando tags como 'latest'
+          ULTIMA_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
+
+          if [ -z "$ULTIMA_TAG" ]; then
+            echo "tag=v1.0.1" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          IFS='.' read -r M m p <<< "${ULTIMA_TAG#v}"
+          M=${M:-1}; m=${m:-0}; p=${p:-0}
+
+          git log --format="%s" "$ULTIMA_TAG..HEAD" 2>/dev/null | grep -q "BREAKING CHANGE\|!:" && { M=$((M+1)); m=0; p=0; } \
+            || git log --format="%s" "$ULTIMA_TAG..HEAD" 2>/dev/null | grep -q "^feat" && { m=$((m+1)); p=0; } \
             || p=$((p+1))
+
           echo "tag=v${M}.${m}.${p}" >> $GITHUB_OUTPUT
       - name: Create release
         if: steps.semver.outputs.tag != ''
