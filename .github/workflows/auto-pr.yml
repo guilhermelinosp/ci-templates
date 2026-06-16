@@ -60,13 +60,17 @@ jobs:
           fi
 
           # Cria PR
+          BODY=$(cat <<-EOF
+          Auto-generated PR from \`$BRANCH\`.
+
+          ## Checklist
+          - [ ] Code review
+          - [ ] Tests passing
+          - [ ] Merge approved
+          EOF
+          )
           gh pr create \
             --base main \
             --head "$BRANCH" \
             --title "$TITLE" \
-            --body "Auto-generated PR from \`$BRANCH\`.
-
-## Checklist
-- [ ] Code review
-- [ ] Tests passing
-- [ ] Merge approved" || echo "⚠️  Nao foi possivel criar PR (pode ja existir)"
+            --body "$BODY" || echo "⚠️  Nao foi possivel criar PR (pode ja existir)"
