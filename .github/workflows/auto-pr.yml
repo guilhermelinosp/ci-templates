@@ -1,6 +1,10 @@
 name: auto-pr
 
 on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
   workflow_call:
 
 permissions:
@@ -23,17 +27,18 @@ jobs:
           BRANCH="${{ github.ref_name }}"
 
           echo "Branch: $BRANCH"
+          echo "Event: ${{ github.event_name }}"
 
-          # Valida prefixo
-          case "$BRANCH" in
-            feat/*|fix/*) echo "✅ Prefixo valido" ;;
-            *) echo "⚠️  Prefixo nao reconhecido, criando PR mesmo assim" ;;
-          esac
+          # Ignora main
+          if [ "$BRANCH" = "main" ]; then
+            echo "Branch main — pulando"
+            exit 0
+          fi
 
           # Verifica se PR ja existe
-          EXISTING=$(gh pr list --head "$BRANCH" --json number,title --jq '.[0].number' 2>/dev/null || echo "")
+          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
           if [ -n "$EXISTING" ]; then
-            echo "PR #$EXISTING ja existe para $BRANCH — atualizando descricao"
+            echo "PR #$EXISTING ja existe para $BRANCH — atualizando"
             gh pr edit "$EXISTING" \
               --body "Auto-generated PR from \`$BRANCH\`." 2>/dev/null || true
             echo "pr_number=$EXISTING" >> $GITHUB_OUTPUT
@@ -41,9 +46,17 @@ jobs:
           fi
 
           # Pega primeiro commit como titulo (fallback)
+          git fetch origin main 2>/dev/null || true
           TITLE=$(git log --format="%s" origin/main..HEAD 2>/dev/null | tail -1 || echo "")
           if [ -z "$TITLE" ]; then
             TITLE="chore: auto PR from $BRANCH"
+          fi
+
+          # Verifica se ha diferenca entre branch e main
+          COMMITS=$(git log --oneline origin/main..HEAD 2>/dev/null | wc -l)
+          if [ "$COMMITS" -eq 0 ]; then
+            echo "Nenhum commit novo — pulando"
+            exit 0
           fi
 
           # Cria PR
