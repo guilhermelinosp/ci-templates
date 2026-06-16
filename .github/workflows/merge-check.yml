@@ -2,6 +2,11 @@ name: merge-check
 
 on:
   workflow_call:
+    inputs:
+      runner:
+        required: false
+        type: string
+        default: self-hosted
 
 permissions:
   contents: read
@@ -9,7 +14,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: self-hosted
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -38,7 +43,7 @@ jobs:
       - name: Conventional Commits check
         run: |
           BASE="${{ github.base_ref }}"
-          HEAD="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
 
           # Tenta encontrar o merge-base
           MERGE_BASE=$(git merge-base origin/$BASE HEAD 2>/dev/null || echo "")
