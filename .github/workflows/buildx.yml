@@ -44,8 +44,11 @@ jobs:
           docker buildx version && docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
       - name: Build and push
         run: |
+          IMG="ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}"
           docker buildx build --platform linux/amd64 --push --attest type=sbom --attest type=provenance,mode=max \
-            -t "ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}:latest" .
+            --cache-to type=registry,ref=${IMG}:buildcache,mode=max \
+            --cache-from type=registry,ref=${IMG}:buildcache \
+            -t "${IMG}:latest" .
       - name: Export digest
         id: export
         run: |
