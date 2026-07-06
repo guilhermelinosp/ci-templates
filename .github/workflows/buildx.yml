@@ -39,14 +39,6 @@ jobs:
           docker buildx create --name ci-builder --driver docker-container \
             --config /dev/null --bootstrap --use 2>/dev/null || docker buildx use ci-builder
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.cache
-          key: buildx-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            buildx-${{ runner.os }}-
-
       - name: Build and push
         run: |
           IMG="ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}"
@@ -55,17 +47,10 @@ jobs:
             --push \
             --attest type=sbom \
             --attest type=provenance,mode=max \
-            --cache-from type=local,src=/tmp/.cache \
             --cache-from type=registry,ref=${IMG}:cache \
-            --cache-to type=local,dest=/tmp/.cache-new,mode=max \
             --cache-to type=registry,ref=${IMG}:cache,mode=max \
             --metadata-file /tmp/metadata.json \
             -t "${IMG}:latest" .
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.cache
-          mv /tmp/.cache-new /tmp/.cache
 
       - name: Export digest
         id: export
