@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - name: Validate workflow syntax
@@ -33,4 +33,3 @@ jobs:
       - name: System info
         run: |
           echo "Runner: $(uname -a)"
-          echo "Tools: gh=$(gh --version 2>&1 | head -1), yq=$(yq --version 2>&1)"
