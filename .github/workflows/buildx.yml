@@ -53,7 +53,9 @@ jobs:
             --attest type=sbom \
             --attest type=provenance,mode=max \
             --cache-from type=local,src=/tmp/.cache \
+            --cache-from type=registry,ref=${IMG}:cache \
             --cache-to type=local,dest=/tmp/.cache-new,mode=max \
+            --cache-to type=registry,ref=${IMG}:cache,mode=max \
             --metadata-file /tmp/metadata.json \
             -t "${IMG}:latest" .
 
