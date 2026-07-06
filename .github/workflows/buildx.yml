@@ -24,33 +24,46 @@ jobs:
       image: ${{ steps.export.outputs.image }}
     steps:
       - uses: actions/checkout@v6
+
       - name: Login GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: |
+          TOKEN="${{ secrets.GHCR_PAT }}"
+          if [ -z "$TOKEN" ]; then TOKEN="${{ secrets.GITHUB_TOKEN }}"; fi
+          echo "$TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Setup buildx
         run: |
-          # O buildx esta em /usr/libexec na imagem ghcr (Docker 29+)
-          # Docker procura em ~/.docker/cli-plugins ou /usr/local/lib/docker/cli-plugins
-          if ! docker buildx version &>/dev/null; then
-            if [ -f /usr/libexec/docker/cli-plugins/docker-buildx ]; then
-              mkdir -p ~/.docker/cli-plugins
-              cp /usr/libexec/docker/cli-plugins/docker-buildx ~/.docker/cli-plugins/
-            fi
-            if ! docker buildx version &>/dev/null; then
-              echo "buildx nao disponivel, tentando download..."
-              mkdir -p ~/.docker/cli-plugins
-              curl -sL "https://github.com/docker/buildx/releases/download/v0.33.0/buildx-v0.33.0.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx && chmod +x ~/.docker/cli-plugins/docker-buildx
-            fi
-          fi
-          docker buildx version && docker buildx create --name ci-builder --driver docker-container --use 2>/dev/null || docker buildx use ci-builder
+          docker buildx create --name ci-builder --driver docker-container \
+            --config /dev/null --bootstrap --use 2>/dev/null || docker buildx use ci-builder
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            buildx-${{ runner.os }}-
+
       - name: Build and push
         run: |
           IMG="ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}"
-          docker buildx build --platform linux/amd64 --push --attest type=sbom --attest type=provenance,mode=max \
-            --cache-to type=registry,ref=${IMG}:buildcache,mode=max \
-            --cache-from type=registry,ref=${IMG}:buildcache \
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            --attest type=sbom \
+            --attest type=provenance,mode=max \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --metadata-file /tmp/metadata.json \
             -t "${IMG}:latest" .
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
       - name: Export digest
         id: export
         run: |
-          DIGEST=$(docker buildx imagetools inspect "ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}:latest" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          DIGEST=$(jq -r '."containerimage.digest"' /tmp/metadata.json)
           echo "image=ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}@${DIGEST}" >> $GITHUB_OUTPUT
