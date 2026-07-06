@@ -25,7 +25,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Login GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: |
+          TOKEN="${{ secrets.GHCR_PAT }}"
+          if [ -z "$TOKEN" ]; then TOKEN="${{ secrets.GITHUB_TOKEN }}"; fi
+          echo "$TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Promote tags
         run: |
           SRC="${{ inputs.image }}"

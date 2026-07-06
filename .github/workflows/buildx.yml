@@ -25,11 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Login GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: |
+          TOKEN="${{ secrets.GHCR_PAT }}"
+          if [ -z "$TOKEN" ]; then TOKEN="${{ secrets.GITHUB_TOKEN }}"; fi
+          echo "$TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Setup buildx
         run: |
-          # O buildx esta em /usr/libexec na imagem ghcr (Docker 29+)
-          # Docker procura em ~/.docker/cli-plugins ou /usr/local/lib/docker/cli-plugins
           if ! docker buildx version &>/dev/null; then
             if [ -f /usr/libexec/docker/cli-plugins/docker-buildx ]; then
               mkdir -p ~/.docker/cli-plugins
@@ -46,8 +47,6 @@ jobs:
         run: |
           IMG="ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}"
           docker buildx build --platform linux/amd64 --push --attest type=sbom --attest type=provenance,mode=max \
-            --cache-to type=registry,ref=${IMG}:buildcache,mode=max \
-            --cache-from type=registry,ref=${IMG}:buildcache \
             -t "${IMG}:latest" .
       - name: Export digest
         id: export
