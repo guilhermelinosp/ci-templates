@@ -36,8 +36,7 @@ jobs:
 
       - name: Setup buildx
         run: |
-          docker buildx create --name ci-builder --driver docker-container \
-            --config /dev/null --bootstrap --use 2>/dev/null || docker buildx use ci-builder
+          docker buildx create --name ci-builder --use 2>/dev/null || docker buildx use ci-builder
 
       - name: Build and push
         run: |
