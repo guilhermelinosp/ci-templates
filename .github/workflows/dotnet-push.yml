@@ -22,7 +22,6 @@ permissions:
 
 jobs:
   push:
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ inputs.runner }}
     env:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
