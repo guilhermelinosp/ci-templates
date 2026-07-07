@@ -7,9 +7,6 @@ on:
         required: false
         default: self-hosted
         type: string
-      registry_owner:
-        required: true
-        type: string
     outputs:
       image:
         value: ${{ jobs.buildx.outputs.image }}
@@ -41,7 +38,7 @@ jobs:
 
       - name: Build and push
         run: |
-          IMG="ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}"
+          IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
           docker buildx build \
             --platform linux/amd64 \
             --push \
@@ -56,4 +53,4 @@ jobs:
         id: export
         run: |
           DIGEST=$(jq -r '."containerimage.digest"' /tmp/metadata.json)
-          echo "image=ghcr.io/${{ inputs.registry_owner }}/${{ github.event.repository.name }}@${DIGEST}" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}@${DIGEST}" >> $GITHUB_OUTPUT
