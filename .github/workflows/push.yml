@@ -4,7 +4,8 @@ on:
   workflow_call:
     inputs:
       runner:
-        required: true
+        required: false
+        default: self-hosted
         type: string
       image:
         required: true
