@@ -1,0 +1,26 @@
+name: nuget-pipeline
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-build.yml@main
+
+  tag:
+    needs: [build]
+    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-tag.yml@main
+
+  publish:
+    needs: [tag]
+    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-publish.yml@main
+    secrets: inherit
+
+  release:
+    needs: [tag]
+    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-release.yml@main
+    secrets: inherit
