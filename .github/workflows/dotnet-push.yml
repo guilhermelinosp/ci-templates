@@ -44,8 +44,9 @@ jobs:
       - name: Pack
         run: |
           VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
           if [ -z "$VERSION" ]; then
-            TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v0.0.0")
+            TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "v0.0.0")
             VERSION="${TAG#v}"
           fi
           [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
