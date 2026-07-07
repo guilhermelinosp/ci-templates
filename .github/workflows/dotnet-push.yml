@@ -27,6 +27,8 @@ permissions:
 jobs:
   push:
     runs-on: ${{ inputs.runner }}
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -55,13 +57,11 @@ jobs:
             --api-key ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to NuGet.org
-        if: secrets.NUGET_API_KEY != ''
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        if: env.NUGET_API_KEY != ''
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
-            --api-key ${{ secrets.NUGET_API_KEY }}
+            --api-key ${{ env.NUGET_API_KEY }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
