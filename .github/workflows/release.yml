@@ -35,14 +35,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           HEAD=$(git rev-parse HEAD)
-          TAG_EXISTENTE=$(git tag --points-at "$HEAD" 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
+          TAG_EXISTENTE=$(git tag --points-at "$HEAD" 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "")
           if [ -n "$TAG_EXISTENTE" ]; then
             echo "tag=$TAG_EXISTENTE" >> $GITHUB_OUTPUT
             exit 0
           fi
-          ULTIMA_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
+          ULTIMA_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "")
           if [ -z "$ULTIMA_TAG" ]; then
             echo "tag=v1.0.1" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          # Check if last tag was beta
+          if [[ "$ULTIMA_TAG" =~ -beta\.([0-9]+)$ ]]; then
+            BETA_NUM=${BASH_REMATCH[1]}
+            BASE="${ULTIMA_TAG%-beta*}"
+            echo "tag=${BASE}-beta.$((BETA_NUM + 1))" >> $GITHUB_OUTPUT
             exit 0
           fi
           IFS='.' read -r M m p <<< "${ULTIMA_TAG#v}"
@@ -61,10 +68,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          PRERELEASE=""
+          if [[ "${{ steps.semver.outputs.tag }}" =~ -beta ]]; then
+            PRERELEASE="--prerelease"
+          fi
           gh release create "${{ steps.semver.outputs.tag }}" \
             --repo "${{ github.repository }}" \
             --title "${{ steps.semver.outputs.tag }}" \
-            --generate-notes
+            --generate-notes $PRERELEASE
 
       - name: Update latest tag
         env:
