@@ -23,6 +23,8 @@ jobs:
     runs-on: ${{ inputs.runner }}
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
+    env:
+      DOTNET_ROOT: /home/runner/.dotnet
     steps:
       - uses: actions/checkout@v6
         with:

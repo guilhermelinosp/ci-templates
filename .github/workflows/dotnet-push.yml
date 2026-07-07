@@ -24,6 +24,7 @@ jobs:
   push:
     runs-on: ${{ inputs.runner }}
     env:
+      DOTNET_ROOT: /home/runner/.dotnet
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     steps:
       - uses: actions/checkout@v6
