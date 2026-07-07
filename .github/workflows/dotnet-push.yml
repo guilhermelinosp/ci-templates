@@ -32,12 +32,11 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        run: |
-          if ! command -v dotnet &>/dev/null; then
-            curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel ${{ inputs.dotnet-version }} --install-dir /usr/share/dotnet
-            ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
-          fi
-          echo "dotnet version: $(dotnet --version)" 
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+        env:
+          DOTNET_ROOT: /home/runner/.dotnet
 
       - name: Detect solution
         run: |
