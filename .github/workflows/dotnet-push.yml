@@ -11,10 +11,6 @@ on:
         required: false
         default: "10.0.x"
         type: string
-      solution:
-        required: false
-        default: ""
-        type: string
       version:
         required: false
         default: ""
@@ -39,6 +35,11 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
+      - name: Detect solution
+        run: |
+          SLN=$(ls *.slnx *.sln 2>/dev/null | head -1 || echo "")
+          echo "SLN=$SLN" >> $GITHUB_ENV
+
       - name: Pack
         run: |
           VERSION="${{ inputs.version }}"
@@ -46,7 +47,7 @@ jobs:
             TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v0.0.0")
             VERSION="${TAG#v}"
           fi
-          dotnet pack ${{ inputs.solution || '.' }} --configuration Release --output ./artifacts -p:Version=$VERSION
+          [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
         env:
