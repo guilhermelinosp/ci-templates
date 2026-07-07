@@ -21,6 +21,8 @@ permissions:
 jobs:
   build:
     runs-on: ${{ inputs.runner }}
+    env:
+      DOTNET_ROOT: /home/runner/.dotnet
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
     env:
@@ -34,8 +36,6 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-        env:
-          DOTNET_ROOT: /home/runner/.dotnet
 
       - name: Extract version
         id: version

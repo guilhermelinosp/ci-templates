@@ -35,8 +35,6 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-        env:
-          DOTNET_ROOT: /home/runner/.dotnet
 
       - name: Detect solution
         run: |
