@@ -58,11 +58,6 @@ jobs:
           # Cria PR
           BODY=$(cat <<-EOF
           Auto-generated PR from \`$BRANCH\`.
-
-          ## Checklist
-          - [ ] Code review
-          - [ ] Tests passing
-          - [ ] Merge approved
           EOF
           )
           gh pr create \
