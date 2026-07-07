@@ -68,14 +68,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PRERELEASE=""
-          if [[ "${{ steps.semver.outputs.tag }}" =~ -beta ]]; then
-            PRERELEASE="--prerelease"
-          fi
           gh release create "${{ steps.semver.outputs.tag }}" \
             --repo "${{ github.repository }}" \
             --title "${{ steps.semver.outputs.tag }}" \
-            --generate-notes $PRERELEASE
+            --generate-notes --latest
 
       - name: Update latest tag
         env:
