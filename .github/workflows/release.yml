@@ -9,7 +9,7 @@ on:
         type: string
       mode:
         required: false
-        default: direct
+        default: pr
         type: string
     outputs:
       version:
