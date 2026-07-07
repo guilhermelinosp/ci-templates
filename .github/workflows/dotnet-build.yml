@@ -11,6 +11,10 @@ on:
         required: false
         default: "10.0.x"
         type: string
+      version:
+        required: false
+        default: ""
+        type: string
     outputs:
       version:
         value: ${{ jobs.build.outputs.version }}
@@ -38,8 +42,12 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v0.0.0")
-          echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "v0.0.0")
+            VERSION="${TAG#v}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Detect solution
         run: |
