@@ -41,6 +41,9 @@ jobs:
           SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
           echo "SLN=$SLN" >> $GITHUB_ENV
 
+      - name: Build
+        run: |
+          [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release
       - name: Pack
         run: |
           VERSION="${{ inputs.version }}"
@@ -49,7 +52,7 @@ jobs:
             TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "v0.0.0")
             VERSION="${TAG#v}"
           fi
-          [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
+          [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --no-build --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
         env:
