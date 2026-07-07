@@ -64,5 +64,9 @@ jobs:
           [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Test
+        env:
+          HELLNET_SERVICE_NAME: test-service
+          HELLNET_OTLP_ENDPOINT: http://localhost:4317
+          HELLNET_OTLP_PROTOCOL: grpc
         run: |
           [ -n "$SLN" ] && dotnet test "$SLN" --configuration Release --no-build --verbosity normal
