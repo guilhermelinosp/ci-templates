@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   buildx:
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ inputs.runner }}
     outputs:
       image: ${{ steps.export.outputs.image }}

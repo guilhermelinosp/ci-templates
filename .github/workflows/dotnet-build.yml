@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   build:
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ inputs.runner }}
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
