@@ -1,0 +1,53 @@
+name: dotnet-build
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: false
+        default: ubuntu-latest
+        type: string
+      dotnet-version:
+        required: false
+        default: "10.0.x"
+        type: string
+      solution:
+        required: false
+        default: ""
+        type: string
+    outputs:
+      version:
+        value: ${{ jobs.build.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Extract version
+        id: version
+        run: |
+          TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v0.0.0")
+          echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore ${{ inputs.solution || '.' }}
+
+      - name: Build
+        run: dotnet build ${{ inputs.solution || '.' }} --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Test
+        run: dotnet test ${{ inputs.solution || '.' }} --configuration Release --no-build --verbosity normal
