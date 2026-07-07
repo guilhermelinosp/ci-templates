@@ -5,7 +5,7 @@ on:
     inputs:
       runner:
         required: false
-        default: ubuntu-latest
+        default: self-hosted
         type: string
       dotnet-version:
         required: false
