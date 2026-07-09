@@ -40,6 +40,10 @@ jobs:
           SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
           VERSION="${{ inputs.version }}"
           VERSION="${VERSION#v}"
+          # Fallback: detect version from latest git tag
+          if [ -z "$VERSION" ]; then
+            VERSION=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 | sed 's/^v//' || echo "0.0.0")
+          fi
           [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
