@@ -40,7 +40,7 @@ jobs:
           SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
           VERSION="${{ inputs.version }}"
           VERSION="${VERSION#v}"
-          [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --no-build --output ./artifacts -p:Version=$VERSION
+          [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
         run: |
