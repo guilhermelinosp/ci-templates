@@ -35,38 +35,28 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - name: Detect solution
-        run: |
-          SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
-          echo "SLN=$SLN" >> $GITHUB_ENV
-
-      - name: Build
-        run: |
-          [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release
       - name: Pack
         run: |
+          SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
           VERSION="${{ inputs.version }}"
           VERSION="${VERSION#v}"
-          if [ -z "$VERSION" ]; then
-            TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "v0.0.0")
-            VERSION="${TAG#v}"
-          fi
           [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --no-build --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
             --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
             --api-key ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to NuGet.org
-        if: env.NUGET_API_KEY != ''
         run: |
-          dotnet nuget push "./artifacts/*.nupkg" \
-            --source https://api.nuget.org/v3/index.json \
-            --api-key ${{ env.NUGET_API_KEY }}
+          if [ -n "$NUGET_API_KEY" ]; then
+            dotnet nuget push "./artifacts/*.nupkg" \
+              --source https://api.nuget.org/v3/index.json \
+              --api-key "$NUGET_API_KEY"
+          else
+            echo "NUGET_API_KEY not set — skipping NuGet.org"
+          fi
 
       - name: Create GitHub Release
         if: inputs.version != ''
@@ -81,5 +71,3 @@ jobs:
           files: |
             ./artifacts/*.nupkg
             ./artifacts/*.snupkg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
