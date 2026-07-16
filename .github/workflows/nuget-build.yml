@@ -9,15 +9,14 @@ permissions:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      DOTNET_ROOT: /usr/share/dotnet
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
+      # .NET is provided by the runner image — no setup-dotnet step needed.
 
       - name: Detect solution
         run: |
@@ -25,10 +24,13 @@ jobs:
           echo "SLN=$SLN" >> $GITHUB_ENV
 
       - name: Restore
-        run: [ -n "$SLN" ] && dotnet restore "$SLN"
+        run: |
+          [ -n "$SLN" ] && dotnet restore "$SLN"
 
       - name: Build
-        run: [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release --no-restore
+        run: |
+          [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release --no-restore
 
       - name: Test
-        run: [ -n "$SLN" ] && dotnet test "$SLN" --configuration Release --no-build --verbosity normal
+        run: |
+          [ -n "$SLN" ] && dotnet test "$SLN" --configuration Release --no-build --verbosity normal
