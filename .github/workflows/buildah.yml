@@ -1,0 +1,51 @@
+name: buildah
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: false
+        default: self-hosted
+        type: string
+    outputs:
+      image:
+        value: ${{ jobs.buildah.outputs.image }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  buildah:
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      image: ${{ steps.export.outputs.image }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login GHCR
+        run: |
+          TOKEN="${{ secrets.GHCR_PAT }}"
+          if [ -z "$TOKEN" ]; then TOKEN="${{ secrets.GITHUB_TOKEN }}"; fi
+          echo "$TOKEN" | buildah login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          buildah build \
+            -t "${IMG}:latest" \
+            -t "${IMG}:${GITHUB_SHA::7}" \
+            .
+
+      - name: Push image
+        run: |
+          IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          buildah push "${IMG}:latest"
+          buildah push "${IMG}:${GITHUB_SHA::7}"
+
+      - name: Export digest
+        id: export
+        run: |
+          IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          DIGEST=$(skopeo inspect --format '{{.Digest}}' "docker://${IMG}:latest")
+          echo "image=${IMG}@${DIGEST}" >> $GITHUB_OUTPUT

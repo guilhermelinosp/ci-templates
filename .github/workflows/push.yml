@@ -27,21 +27,21 @@ jobs:
   push:
     runs-on: ${{ inputs.runner }}
     env:
-      DOCKER_CONFIG: /tmp/.docker
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Login GHCR
         run: |
-          mkdir -p /tmp/.docker
           TOKEN="${{ secrets.GHCR_PAT }}"
           if [ -z "$TOKEN" ]; then TOKEN="${{ secrets.GITHUB_TOKEN }}"; fi
-          echo "$TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "$TOKEN" | skopeo login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Promote tags
         run: |
           SRC="${{ inputs.image }}"
           DST="ghcr.io/${{ github.repository }}"
-          docker buildx imagetools create --tag "$DST:latest" --tag "$DST:${GITHUB_SHA::7}" "$SRC"
+          skopeo copy "docker://${SRC}" "docker://${DST}:latest"
+          skopeo copy "docker://${SRC}" "docker://${DST}:${GITHUB_SHA::7}"
           TAG="${{ inputs.version }}"
           if [ -n "$TAG" ]; then
-            docker buildx imagetools create --tag "$DST:$TAG" "$SRC"
+            skopeo copy "docker://${SRC}" "docker://${DST}:${TAG}"
           fi
