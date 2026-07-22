@@ -5,7 +5,7 @@ on:
     inputs:
       runner:
         required: false
-        default: self-hosted
+        default: ubuntu-latest
         type: string
     outputs:
       image:

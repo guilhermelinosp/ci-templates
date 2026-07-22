@@ -5,10 +5,8 @@ on:
     inputs:
       runner:
         required: false
-        default: self-hosted
+        default: ubuntu-latest
         type: string
-      # NOTE: dotnet is pre-installed in the runner image (ghcr.io/guilhermelinosp/arc-actions-runner).
-      # This input is kept for backwards compatibility but is no longer used to install dotnet.
       dotnet-version:
         required: false
         default: "10.0.301"
@@ -25,14 +23,15 @@ permissions:
 jobs:
   push:
     runs-on: ${{ inputs.runner }}
-    env:
-      DOTNET_ROOT: /usr/share/dotnet
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      # .NET is provided by the runner image — no setup-dotnet step needed.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
 
       - name: Pack
         run: |

@@ -5,7 +5,7 @@ on:
     inputs:
       runner:
         required: false
-        default: self-hosted
+        default: ubuntu-latest
         type: string
       image:
         required: true
@@ -29,6 +29,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Install skopeo
+        run: sudo apt-get update && sudo apt-get install -y skopeo
+
       - name: Login GHCR
         run: |
           TOKEN="${{ secrets.GHCR_PAT }}"
