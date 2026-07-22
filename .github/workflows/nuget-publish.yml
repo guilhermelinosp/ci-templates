@@ -9,13 +9,14 @@ permissions:
 
 jobs:
   publish:
-    runs-on: self-hosted
-    env:
-      DOTNET_ROOT: /usr/share/dotnet
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      # .NET is provided by the runner image — no setup-dotnet step needed.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
 
       - name: Detect solution
         run: |

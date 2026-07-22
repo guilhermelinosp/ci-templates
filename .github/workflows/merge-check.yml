@@ -6,7 +6,7 @@ on:
       runner:
         required: false
         type: string
-        default: self-hosted
+        default: ubuntu-latest
 
 permissions:
   contents: read
@@ -25,13 +25,11 @@ jobs:
           BASE="${{ github.base_ref }}"
           HEAD="${{ github.head_ref }}"
 
-          # Verifica se a branch base está acessível
           if ! git merge-base --is-ancestor origin/$BASE HEAD 2>/dev/null; then
             echo "⚠️ Branch base não encontrada localmente, pulando verificação"
             exit 0
           fi
 
-          # Lista commits que entrariam no merge
           COMMITS=$(git log --oneline origin/$BASE..HEAD 2>/dev/null | wc -l)
           echo "Commits a mesclar: $COMMITS"
 
@@ -45,7 +43,6 @@ jobs:
           BASE="${{ github.base_ref }}"
           HEAD="${{ github.head_ref }}"
 
-          # Tenta encontrar o merge-base
           MERGE_BASE=$(git merge-base origin/$BASE HEAD 2>/dev/null || echo "")
           if [ -z "$MERGE_BASE" ]; then
             echo "⚠️ Não foi possível determinar merge-base, pulando"
