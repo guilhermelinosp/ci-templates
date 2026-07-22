@@ -1,0 +1,58 @@
+name: terraform-aws-auth
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        required: false
+        default: "us-east-1"
+        type: string
+      role-to-assume:
+        required: true
+        type: string
+      terraform-dir:
+        required: false
+        default: "."
+        type: string
+    outputs:
+      aws-account-id:
+        value: ${{ jobs.auth.outputs.aws-account-id }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  auth:
+    runs-on: ubuntu-latest
+    outputs:
+      aws-account-id: ${{ steps.identity.outputs.account-id }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials for Terraform
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.role-to-assume }}
+          role-session-name: terraform-${{ github.run_id }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Verify identity
+        id: identity
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          echo "account-id=$ACCOUNT" >> $GITHUB_OUTPUT
+          echo "Authenticated: $ACCOUNT / ${{ inputs.aws-region }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Terraform init
+        run: |
+          terraform -chdir=${{ inputs.terraform-dir }} init
+
+      - name: Terraform validate
+        run: |
+          terraform -chdir=${{ inputs.terraform-dir }} validate

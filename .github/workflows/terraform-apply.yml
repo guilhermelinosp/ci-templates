@@ -18,6 +18,14 @@ on:
         required: false
         default: false
         type: boolean
+      aws-role-to-assume:
+        required: false
+        default: ""
+        type: string
+      aws-region:
+        required: false
+        default: "us-east-1"
+        type: string
     secrets:
       TF_API_TOKEN:
         required: false
@@ -38,6 +46,14 @@ jobs:
       plan-exitcode: ${{ steps.plan.outputs.exitcode }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws-role-to-assume != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-role-to-assume }}
+          role-session-name: terraform-plan-${{ github.run_id }}
+          aws-region: ${{ inputs.aws-region }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -71,6 +87,14 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws-role-to-assume != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-role-to-assume }}
+          role-session-name: terraform-apply-${{ github.run_id }}
+          aws-region: ${{ inputs.aws-region }}
 
       - name: Download plan
         uses: actions/download-artifact@v4
