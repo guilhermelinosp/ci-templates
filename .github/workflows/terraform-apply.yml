@@ -82,7 +82,8 @@ jobs:
   apply:
     needs: [plan]
     if: |
-      github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      && needs.plan.outputs.plan-exitcode == '0'
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:

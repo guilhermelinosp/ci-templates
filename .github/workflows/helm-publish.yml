@@ -43,4 +43,9 @@ jobs:
 
       - name: Push chart
         run: |
-          helm push /tmp/charts/*.tgz ${{ inputs.registry }}
+          CHART=$(ls /tmp/charts/*.tgz | head -1)
+          if [ -z "$CHART" ]; then
+            echo "No chart package found"
+            exit 1
+          fi
+          helm push "$CHART" ${{ inputs.registry }}

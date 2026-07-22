@@ -41,7 +41,11 @@ jobs:
           for PKG in $(echo "${{ inputs.package-names }}" | tr ',' ' '); do
             echo "=== Processing package: $PKG ==="
 
-            VERSIONS=$(gh api "/orgs/${{ github.repository_owner }}/packages/container/$PKG/versions" \
+            OWNER_TYPE="orgs"
+            if gh api "/user" --jq '.type' 2>/dev/null | grep -q "User"; then
+              OWNER_TYPE="users"
+            fi
+            VERSIONS=$(gh api "/$OWNER_TYPE/${{ github.repository_owner }}/packages/container/$PKG/versions" \
               --jq '.[] | select(.metadata.container.tags | length > 0) | {id, tags: .metadata.container.tags, created_at}' 2>/dev/null)
 
             if [ -z "$VERSIONS" ]; then

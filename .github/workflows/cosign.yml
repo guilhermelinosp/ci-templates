@@ -11,14 +11,14 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
 jobs:
   sign:
     runs-on: ${{ inputs.runner }}
-
-    permissions:
-      contents: read
-      id-token: write
-      packages: write
 
     steps:
       - name: Install cosign

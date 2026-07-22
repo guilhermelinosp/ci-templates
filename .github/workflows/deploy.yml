@@ -48,6 +48,9 @@ jobs:
 
       - name: Helm upgrade
         run: |
+          RELEASE="${{ inputs.release-name }}"
+          CHART="${{ inputs.chart-dir }}"
+          NS="${{ inputs.namespace }}"
           ARGS=""
           if [ -n "${{ inputs.values-file }}" ]; then
             ARGS="$ARGS -f ${{ inputs.values-file }}"
@@ -55,9 +58,9 @@ jobs:
           if [ -n "${{ inputs.image }}" ]; then
             ARGS="$ARGS --set image.repository=${{ inputs.image }}"
           fi
-          helm upgrade --install ${{ inputs.release-name }} \
-            ${{ inputs.chart-dir }} \
-            --namespace ${{ inputs.namespace }} \
+          helm upgrade --install "$RELEASE" \
+            "$CHART" \
+            --namespace "$NS" \
             --create-namespace \
             --wait \
             --timeout 5m \

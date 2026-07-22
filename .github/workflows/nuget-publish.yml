@@ -29,8 +29,6 @@ jobs:
           [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
             --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \

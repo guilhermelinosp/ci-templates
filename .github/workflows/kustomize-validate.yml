@@ -23,8 +23,9 @@ jobs:
 
       - name: Install kustomize
         run: |
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
-            | bash -s -- /usr/local/bin
+          wget -q "https://github.com/kubernetes-sigs/kustomize/releases/latest/download/kustomize_linux_amd64.tar.gz"
+          tar xzf kustomize_linux_amd64.tar.gz
+          sudo mv kustomize /usr/local/bin/kustomize
 
       - name: Install kubeconform
         run: |

@@ -21,8 +21,9 @@ jobs:
     steps:
       - name: Install syft
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-            | sh -s -- -b /usr/local/bin
+          wget -q "https://github.com/anchore/syft/releases/latest/download/syft_linux_amd64"
+          chmod +x syft_linux_amd64
+          sudo mv syft_linux_amd64 /usr/local/bin/syft
 
       - name: Generate SBOM
         run: |

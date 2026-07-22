@@ -7,22 +7,6 @@ on:
         required: false
         default: "."
         type: string
-      cpu-request-max:
-        required: false
-        default: "2"
-        type: string
-      memory-request-max:
-        required: false
-        default: "4Gi"
-        type: string
-      cpu-limit-max:
-        required: false
-        default: "4"
-        type: string
-      memory-limit-max:
-        required: false
-        default: "8Gi"
-        type: string
 
 permissions:
   contents: read
@@ -42,41 +26,43 @@ jobs:
       - name: Check K8s resource requests/limits
         run: |
           ERRORS=0
-          CPU_REQ_MAX="${{ inputs.cpu-request-max }}"
-          MEM_REQ_MAX="${{ inputs.memory-request-max }}"
-          CPU_LIM_MAX="${{ inputs.cpu-limit-max }}"
-          MEM_LIM_MAX="${{ inputs.memory-limit-max }}"
+          ERROR_FILE=$(mktemp)
+          echo 0 > "$ERROR_FILE"
 
-          find ${{ inputs.manifests-dir }} -name '*.yaml' -o -name '*.yml' | while read -r FILE; do
-            yq eval '. | select(.kind == "Deployment" or .kind == "StatefulSet" or .kind == "DaemonSet")' "$FILE" 2>/dev/null | while read -r _; do
-              NAME=$(yq eval '.metadata.name' "$FILE" 2>/dev/null)
-              echo "--- Checking: $NAME ($FILE) ---"
+          set +e
+          while IFS= read -r -d '' FILE; do
+            KIND=$(yq eval '.kind' "$FILE" 2>/dev/null)
+            case "$KIND" in
+              Deployment|StatefulSet|DaemonSet)
+                NAME=$(yq eval '.metadata.name' "$FILE" 2>/dev/null)
+                echo "--- Checking: $NAME ($FILE) ---"
 
-              CPU_REQ=$(yq eval '.spec.template.spec.containers[].resources.requests.cpu' "$FILE" 2>/dev/null)
-              MEM_REQ=$(yq eval '.spec.template.spec.containers[].resources.requests.memory' "$FILE" 2>/dev/null)
-              CPU_LIM=$(yq eval '.spec.template.spec.containers[].resources.limits.cpu' "$FILE" 2>/dev/null)
-              MEM_LIM=$(yq eval '.spec.template.spec.containers[].resources.limits.memory' "$FILE" 2>/dev/null)
+                CPU_REQ=$(yq eval '.spec.template.spec.containers[0].resources.requests.cpu' "$FILE" 2>/dev/null)
+                MEM_REQ=$(yq eval '.spec.template.spec.containers[0].resources.requests.memory' "$FILE" 2>/dev/null)
 
-              [ -z "$CPU_REQ" ] && echo "  ⚠️  No CPU request" && ERRORS=$((ERRORS+1))
-              [ -z "$MEM_REQ" ] && echo "  ⚠️  No memory request" && ERRORS=$((ERRORS+1))
+                if [ -z "$CPU_REQ" ] || [ "$CPU_REQ" = "null" ]; then
+                  echo "  No CPU request"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "  CPU request: $CPU_REQ"
+                fi
 
-              if [ -n "$CPU_REQ" ]; then
-                echo "  CPU request: $CPU_REQ"
-              fi
-              if [ -n "$MEM_REQ" ]; then
-                echo "  Memory request: $MEM_REQ"
-              fi
-              if [ -n "$CPU_LIM" ]; then
-                echo "  CPU limit: $CPU_LIM"
-              fi
-              if [ -n "$MEM_LIM" ]; then
-                echo "  Memory limit: $MEM_LIM"
-              fi
-            done
-          done
+                if [ -z "$MEM_REQ" ] || [ "$MEM_REQ" = "null" ]; then
+                  echo "  No memory request"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "  Memory request: $MEM_REQ"
+                fi
+                ;;
+            esac
+          done < <(find "${{ inputs.manifests-dir }}" -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 2>/dev/null)
+          set -e
 
-          if [ "$ERRORS" -gt 0 ]; then
-            echo "::warning::$ERRORS resources missing requests/limits"
-          else
-            echo "✅ All resources have requests and limits"
+          echo "$ERRORS" > "$ERROR_FILE"
+          COUNT=$(cat "$ERROR_FILE")
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning::$COUNT resources missing requests"
+            exit 1
           fi
+          echo "All resources have requests"
