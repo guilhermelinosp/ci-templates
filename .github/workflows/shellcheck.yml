@@ -1,0 +1,31 @@
+name: shellcheck
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck shfmt
+
+      - name: ShellCheck
+        run: |
+          shellcheck $(find ${{ inputs.dir }} -name '*.sh' -not -path './.git/*' 2>/dev/null)
+
+      - name: Check formatting (shfmt)
+        run: |
+          shfmt -d $(find ${{ inputs.dir }} -name '*.sh' -not -path './.git/*' 2>/dev/null) || \
+            echo "Run 'shfmt -w .' to fix formatting"

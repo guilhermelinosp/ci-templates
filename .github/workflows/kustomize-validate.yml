@@ -1,0 +1,44 @@
+name: kustomize-validate
+
+on:
+  workflow_call:
+    inputs:
+      kustomize-dir:
+        required: false
+        default: "."
+        type: string
+      kube-version:
+        required: false
+        default: "1.31.0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
+            | bash -s -- /usr/local/bin
+
+      - name: Install kubeconform
+        run: |
+          wget -q "https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz"
+          tar xzf kubeconform-linux-amd64.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: kustomize build
+        run: |
+          kustomize build ${{ inputs.kustomize-dir }} > /tmp/manifests.yaml
+
+      - name: kubeconform validation
+        run: |
+          kubeconform \
+            -kubernetes-version ${{ inputs.kube-version }} \
+            -strict \
+            /tmp/manifests.yaml

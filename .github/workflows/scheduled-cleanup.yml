@@ -1,0 +1,76 @@
+name: scheduled-cleanup
+
+on:
+  workflow_call:
+    inputs:
+      package-names:
+        required: true
+        type: string
+      days-old:
+        required: false
+        default: 90
+        type: number
+      dry-run:
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      GHCR_PAT:
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
+            -u ${{ github.actor }} --password-stdin
+
+      - name: List and delete old versions
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_PAT }}
+        run: |
+          DRY_RUN="${{ inputs.dry-run }}"
+          CUTOFF=$(date -d "-${{ inputs.days-old }} days" +%s)
+
+          for PKG in $(echo "${{ inputs.package-names }}" | tr ',' ' '); do
+            echo "=== Processing package: $PKG ==="
+
+            VERSIONS=$(gh api "/orgs/${{ github.repository_owner }}/packages/container/$PKG/versions" \
+              --jq '.[] | select(.metadata.container.tags | length > 0) | {id, tags: .metadata.container.tags, created_at}' 2>/dev/null)
+
+            if [ -z "$VERSIONS" ]; then
+              echo "No versions found for $PKG"
+              continue
+            fi
+
+            echo "$VERSIONS" | jq -c '.' | while read -r VER; do
+              CREATED=$(echo "$VER" | jq -r '.created_at')
+              CREATED_TS=$(date -d "$CREATED" +%s 2>/dev/null || echo 0)
+              TAGS=$(echo "$VER" | jq -r '.tags | join(", ")')
+              ID=$(echo "$VER" | jq -r '.id')
+
+              if [ "$CREATED_TS" -lt "$CUTOFF" ]; then
+                echo "  🗑️  $TAGS (created $CREATED)"
+                if [ "$DRY_RUN" != "true" ]; then
+                  gh api --method DELETE "/orgs/${{ github.repository_owner }}/packages/container/$PKG/versions/$ID"
+                fi
+              else
+                echo "  ✅ $TAGS (kept)"
+              fi
+            done
+          done
+
+      - name: Summary
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "⚠️  Dry-run mode — no packages deleted."
+            echo "Set dry-run: false to actually delete."
+          else
+            echo "✅ Cleanup completed."
+          fi
