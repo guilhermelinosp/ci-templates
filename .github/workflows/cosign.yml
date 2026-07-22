@@ -50,6 +50,8 @@ jobs:
           fi
 
       - name: Sign image (OCI referrers mode)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
 
