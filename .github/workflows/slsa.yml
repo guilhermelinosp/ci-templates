@@ -1,0 +1,44 @@
+name: slsa
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      predicate-type:
+        required: false
+        default: "https://slsa.dev/provenance/v1"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
+jobs:
+  provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Generate SLSA provenance
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign attest \
+            --yes \
+            --type slsaprovenance \
+            --predicate-type ${{ inputs.predicate-type }} \
+            ${{ inputs.image }}
+
+      - name: Verify provenance
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign verify-attestation \
+            --type slsaprovenance \
+            ${{ inputs.image }}

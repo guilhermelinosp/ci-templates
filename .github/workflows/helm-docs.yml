@@ -1,0 +1,51 @@
+name: helm-docs
+
+on:
+  workflow_call:
+    inputs:
+      chart-dir:
+        required: false
+        default: "."
+        type: string
+      template-values:
+        required: false
+        default: "values.yaml"
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install helm-docs
+        run: |
+          wget -q "https://github.com/norwoodj/helm-docs/releases/latest/download/helm-docs_linux_amd64.tar.gz"
+          tar xzf helm-docs_linux_amd64.tar.gz
+          sudo mv helm-docs /usr/local/bin/
+
+      - name: Generate README
+        run: |
+          helm-docs \
+            --chart-search-root ${{ inputs.chart-dir }} \
+            --template-files ${{ inputs.template-values }}
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if ! git diff --quiet; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit docs
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: auto-update helm-docs"
+          git push

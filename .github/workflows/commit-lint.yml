@@ -1,0 +1,53 @@
+name: commit-lint
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            echo "Skipping — not a PR event"
+            exit 0
+          fi
+
+          ERRORS=0
+          while IFS= read -r LINE; do
+            HASH=$(echo "$LINE" | awk '{print $1}')
+            MSG=$(echo "$LINE" | cut -d' ' -f2-)
+
+            if echo "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|ci|chore|revert|ops)(\(.+\))?!?: .+'; then
+              echo "✅ $HASH: $MSG"
+            elif echo "$MSG" | grep -q '^Merge '; then
+              echo "   $HASH: merge commit (skipped)"
+            elif echo "$MSG" | grep -q '^chore(deps)'; then
+              echo "   $HASH: deps commit (skipped)"
+            else
+              echo "❌ $HASH: $MSG"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done < <(git log --format='%H %s' "$BASE..$HEAD")
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error::$ERRORS commits do not follow Conventional Commits"
+            exit 1
+          fi
+          echo "All commits follow Conventional Commits"
