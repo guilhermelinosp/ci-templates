@@ -21,7 +21,7 @@ jobs:
     outputs:
       image: ${{ steps.export.outputs.image }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install buildah & skopeo
         run: sudo apt-get update && sudo apt-get install -y buildah skopeo
