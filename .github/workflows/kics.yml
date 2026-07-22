@@ -1,0 +1,37 @@
+name: kics
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+      fail-on:
+        required: false
+        default: "high"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: KICS scan
+        uses: checkmarx/kics-github-action@v2.1
+        with:
+          path: ${{ inputs.dir }}
+          fail_on: ${{ inputs.fail-on }}
+          output_path: kics-results
+          output_formats: sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: kics-results/results.sarif

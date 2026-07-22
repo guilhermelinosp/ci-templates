@@ -1,0 +1,36 @@
+name: owasp-dependency-check
+
+on:
+  workflow_call:
+    inputs:
+      format:
+        required: false
+        default: "SARIF"
+        type: string
+      fail-on:
+        required: false
+        default: "CVSS_SCORE_7"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@v1.1.0
+        with:
+          format: ${{ inputs.format }}
+          fail_on_cvss: ${{ inputs.fail-on }}
+          output_dir: dc-report
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: dc-report/dependency-check-report.sarif
