@@ -1,0 +1,41 @@
+name: terraform-validate
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+      terraform-version:
+        required: false
+        default: "latest"
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+
+      - name: Terraform fmt
+        run: |
+          terraform fmt -check -recursive ${{ inputs.dir }} || \
+            echo "::warning::Run 'terraform fmt -recursive' to fix formatting"
+
+      - name: Terraform init
+        run: |
+          terraform -chdir=${{ inputs.dir }} init -backend=false
+
+      - name: Terraform validate
+        run: |
+          terraform -chdir=${{ inputs.dir }} validate

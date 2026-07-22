@@ -1,0 +1,90 @@
+name: ai-review
+
+on:
+  workflow_call:
+    inputs:
+      model:
+        required: false
+        default: "gpt-4o"
+        type: string
+      max-comments:
+        required: false
+        default: 10
+        type: number
+      review-focus:
+        required: false
+        default: "security,performance,bugs,best-practices"
+        type: string
+    secrets:
+      AI_API_KEY:
+        required: true
+      AI_API_ENDPOINT:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        run: |
+          git diff origin/${{ github.base_ref }}..HEAD > /tmp/diff.txt
+          echo "Diff lines: $(wc -l < /tmp/diff.txt)"
+
+      - name: AI Code Review
+        id: ai-review
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_API_ENDPOINT: ${{ secrets.AI_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions' }}
+          MODEL: ${{ inputs.model }}
+          REVIEW_FOCUS: ${{ inputs.review-focus }}
+          MAX_COMMENTS: ${{ inputs.max-comments }}
+        run: |
+          DIFF=$(cat /tmp/diff.txt | head -c 50000)
+
+          RESPONSE=$(curl -s "$AI_API_ENDPOINT" \
+            -H "Authorization: Bearer $AI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg model "$MODEL" \
+              --arg diff "$DIFF" \
+              --arg focus "$REVIEW_FOCUS" \
+              --argjson max "$MAX_COMMENTS" \
+              '{
+                model: $model,
+                messages: [
+                  {role: "system", content: "You are a senior code reviewer. Review the following diff. Focus on: \($focus). Provide at most \($max) specific, actionable comments. Format: FILE:LINE: SEVERITY: MESSAGE"},
+                  {role: "user", content: $diff}
+                ],
+                temperature: 0.3
+              }')")
+
+          echo "$RESPONSE" | jq -r '.choices[0].message.content // "No review generated"' > /tmp/ai-review.txt
+          cat /tmp/ai-review.txt
+
+      - name: Post review comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          while IFS= read -r LINE; do
+            if [[ "$LINE" =~ ^([^:]+):([0-9]+):\ (INFO|WARNING|ERROR|CRITICAL):\ (.+) ]]; then
+              FILE="${BASH_REMATCH[1]}"
+              LINE_NUM="${BASH_REMATCH[2]}"
+              SEVERITY="${BASH_REMATCH[3]}"
+              BODY="${BASH_REMATCH[4]}"
+
+              if [ -f "$FILE" ]; then
+                gh pr review "${{ github.event.pull_request.number }}" \
+                  --comment \
+                  --body "**AI Review [$SEVERITY]:** $BODY" || true
+              fi
+            fi
+          done < /tmp/ai-review.txt
