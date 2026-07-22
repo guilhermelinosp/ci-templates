@@ -31,10 +31,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install reviewdog
-        run: |
-          go install github.com/reviewdog/reviewdog/cmd/reviewdog@latest
-
       - name: Run golangci-lint
         if: ${{ inputs.golangci-lint }}
         uses: reviewdog/action-golangci-lint@v2
