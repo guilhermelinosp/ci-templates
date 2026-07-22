@@ -1,0 +1,41 @@
+name: zap
+
+on:
+  workflow_call:
+    inputs:
+      target-url:
+        required: true
+        type: string
+      scan-type:
+        required: false
+        default: "baseline"
+        type: string
+      fail-on:
+        required: false
+        default: "HIGH"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: OWASP ZAP ${{ inputs.scan-type }}
+        uses: zaproxy/action-${{ inputs.scan-type }}@v0.14
+        with:
+          target: ${{ inputs.target-url }}
+          fail_action: true
+          allow_issue_writing: false
+          issue_title: "ZAP Scan Report"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: zap-${{ inputs.scan-type }}.sarif

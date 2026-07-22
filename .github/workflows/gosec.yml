@@ -1,0 +1,43 @@
+name: gosec
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "./..."
+        type: string
+      severity:
+        required: false
+        default: "medium"
+        type: string
+      confidence:
+        required: false
+        default: "medium"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run gosec
+        uses: securego/gosec@v2.22.3
+        with:
+          args: >
+            -severity ${{ inputs.severity }}
+            -confidence ${{ inputs.confidence }}
+            -fmt sarif
+            -out gosec.sarif
+            ${{ inputs.dir }}
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: gosec.sarif

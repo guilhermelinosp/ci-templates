@@ -1,0 +1,52 @@
+name: snyk
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        required: false
+        default: "dotnet"
+        type: string
+      severity:
+        required: false
+        default: "high"
+        type: string
+      monitor:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Snyk test
+        uses: snyk/actions/${{ inputs.project-type }}@v0.4
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=${{ inputs.severity }} --sarif-file-output=snyk.sarif
+
+      - name: Snyk monitor
+        if: ${{ inputs.monitor }}
+        uses: snyk/actions/${{ inputs.project-type }}@v0.4
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --severity-threshold=${{ inputs.severity }}
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk.sarif

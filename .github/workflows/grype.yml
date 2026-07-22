@@ -1,0 +1,40 @@
+name: grype
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      severity:
+        required: false
+        default: "high,critical"
+        type: string
+      fail-on:
+        required: false
+        default: "critical"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Scan with Grype
+        uses: anchore/scan-action@v6
+        with:
+          image: ${{ inputs.image }}
+          severity-cutoff: ${{ inputs.severity }}
+          fail-build: true
+          output-format: sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

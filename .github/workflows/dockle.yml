@@ -1,0 +1,36 @@
+name: dockle
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      exit-code:
+        required: false
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run dockle
+        uses: goodwithtech/dockle-action@v1
+        with:
+          image: ${{ inputs.image }}
+          exit-code: ${{ inputs.exit-code }}
+          format: sarif
+          output: dockle.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: dockle.sarif
