@@ -33,7 +33,7 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output trivy.sarif --no-progress "${{ inputs.image }}" || true
+          trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output trivy.sarif --no-progress "${{ inputs.image }}"
 
       - name: Upload SARIF
         continue-on-error: true

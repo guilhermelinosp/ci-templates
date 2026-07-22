@@ -21,7 +21,7 @@ permissions:
   packages: write
 
 jobs:
-  push:
+  promote:
     runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -35,10 +35,9 @@ jobs:
 
       - name: Pack
         run: |
-          SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
+          SLN=$(find . -maxdepth 2 \( -name '*.slnx' -o -name '*.sln' \) 2>/dev/null | head -1 || echo "")
           VERSION="${{ inputs.version }}"
           VERSION="${VERSION#v}"
-          # Fallback: detect version from latest git tag
           if [ -z "$VERSION" ]; then
             VERSION=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 | sed 's/^v//' || echo "0.0.0")
           fi
@@ -51,6 +50,8 @@ jobs:
             --api-key ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           if [ -n "$NUGET_API_KEY" ]; then
             dotnet nuget push "./artifacts/*.nupkg" \

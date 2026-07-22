@@ -7,14 +7,17 @@ on:
         required: false
         default: ubuntu-latest
         type: string
-      login_minio:
+      login-minio:
         required: false
         type: boolean
         default: false
-      login_ghcr:
+      login-ghcr:
         required: false
         type: boolean
         default: false
+    secrets:
+      VAULT_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -36,30 +39,30 @@ jobs:
       - name: Install mc (minio client)
         run: |
           wget -q https://dl.min.io/client/mc/release/linux-amd64/mc -O /tmp/mc
+          wget -q https://dl.min.io/client/mc/release/linux-amd64/mc.sha256 -O /tmp/mc.sha256
+          cd /tmp && sha256sum -c mc.sha256 --ignore-missing
           chmod +x /tmp/mc
           sudo mv /tmp/mc /usr/local/bin/mc
 
       - name: Install buildah
-        if: ${{ inputs.login_ghcr }}
+        if: ${{ inputs.login-ghcr }}
         run: sudo apt-get update && sudo apt-get install -y buildah
 
       - name: Login Vault
         run: |
-          vault login "$VAULT_TOKEN"
+          vault login "${{ secrets.VAULT_TOKEN }}"
 
       - name: Login MinIO
-        if: ${{ inputs.login_minio }}
+        if: ${{ inputs.login-minio }}
         run: |
           ENDPOINT=$(vault kv get -field=endpoint_url kv/minio/creds)
           ACCESS_KEY=$(vault kv get -field=access_key_id kv/minio/creds)
           SECRET_KEY=$(vault kv get -field=secret_access_key kv/minio/creds)
           mc alias set minio "$ENDPOINT" "$ACCESS_KEY" "$SECRET_KEY" --insecure
           echo "MINIO_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
-          echo "MINIO_ACCESS_KEY=$ACCESS_KEY" >> $GITHUB_ENV
-          echo "MINIO_SECRET_KEY=$SECRET_KEY" >> $GITHUB_ENV
 
       - name: Login GHCR
-        if: ${{ inputs.login_ghcr }}
+        if: ${{ inputs.login-ghcr }}
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

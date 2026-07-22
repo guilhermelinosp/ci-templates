@@ -4,8 +4,7 @@ on:
   workflow_call:
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   build:
@@ -21,6 +20,6 @@ jobs:
     secrets: inherit
 
   release:
-    needs: [tag]
+    needs: [tag, publish]
     uses: guilhermelinosp/ci-templates/.github/workflows/nuget-release.yml@main
     secrets: inherit

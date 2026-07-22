@@ -24,6 +24,9 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
+      - name: Install buildah
+        run: sudo apt-get update && sudo apt-get install -y buildah
+
       - name: Authenticate to GHCR
         run: |
           set -euo pipefail
@@ -47,8 +50,6 @@ jobs:
           fi
 
       - name: Sign image (OCI referrers mode)
-        env:
-          COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
 

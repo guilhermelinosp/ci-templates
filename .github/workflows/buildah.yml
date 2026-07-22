@@ -23,9 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install buildah & skopeo
-        run: sudo apt-get update && sudo apt-get install -y buildah skopeo
-
       - name: Login GHCR
         run: |
           TOKEN="${{ secrets.GHCR_PAT }}"

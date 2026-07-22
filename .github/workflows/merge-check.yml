@@ -26,17 +26,17 @@ jobs:
           HEAD="${{ github.head_ref }}"
 
           if ! git merge-base --is-ancestor origin/$BASE HEAD 2>/dev/null; then
-            echo "⚠️ Branch base não encontrada localmente, pulando verificação"
+            echo "Base branch not found locally, skipping check"
             exit 0
           fi
 
           COMMITS=$(git log --oneline origin/$BASE..HEAD 2>/dev/null | wc -l)
-          echo "Commits a mesclar: $COMMITS"
+          echo "Commits to merge: $COMMITS"
 
-      - name: Ensure main is up to date
+      - name: Confirm base branch
         if: github.base_ref == 'main'
         run: |
-          echo "✅ PR aprovado para ${{ github.base_ref }}"
+          echo "PR approved for ${{ github.base_ref }}"
 
       - name: Conventional Commits check
         run: |
@@ -45,7 +45,7 @@ jobs:
 
           MERGE_BASE=$(git merge-base origin/$BASE HEAD 2>/dev/null || echo "")
           if [ -z "$MERGE_BASE" ]; then
-            echo "⚠️ Não foi possível determinar merge-base, pulando"
+            echo "Could not determine merge base, skipping"
             exit 0
           fi
 
@@ -55,13 +55,13 @@ jobs:
               if echo "$COMMIT" | grep -q '^Merge'; then
                 continue
               fi
-              echo "⚠️ Commit não conforma com Conventional Commits: $COMMIT"
+              echo "Commit does not follow Conventional Commits: $COMMIT"
               ERRORS=$((ERRORS + 1))
             fi
           done
 
           if [ "$ERRORS" -gt 0 ]; then
-            echo "❌ $ERRORS commits não seguem Conventional Commits"
+            echo "$ERRORS commits do not follow Conventional Commits"
             exit 1
           fi
-          echo "✅ Todos os commits seguem Conventional Commits"
+          echo "All commits follow Conventional Commits"

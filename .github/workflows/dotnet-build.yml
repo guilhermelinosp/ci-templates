@@ -50,7 +50,7 @@ jobs:
 
       - name: Detect solution
         run: |
-          SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
+          SLN=$(find . -maxdepth 2 \( -name '*.slnx' -o -name '*.sln' \) 2>/dev/null | head -1 || echo "")
           echo "SLN=$SLN" >> $GITHUB_ENV
 
       - name: Restore
@@ -62,9 +62,5 @@ jobs:
           [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Test
-        env:
-          HELLNET_SERVICE_NAME: test-service
-          HELLNET_OTLP_ENDPOINT: http://localhost:4317
-          HELLNET_OTLP_PROTOCOL: grpc
         run: |
           [ -n "$SLN" ] && dotnet test "$SLN" --configuration Release --no-build --verbosity normal
