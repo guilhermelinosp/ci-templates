@@ -1,0 +1,44 @@
+name: checkov
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+      framework:
+        required: false
+        default: "all"
+        type: string
+      quiet:
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@v14
+        with:
+          directory: ${{ inputs.dir }}
+          framework: ${{ inputs.framework }}
+          quiet: ${{ inputs.quiet }}
+          output_format: sarif
+          output_file_path: checkov.sarif
+          soft_fail: false
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: checkov.sarif

@@ -1,0 +1,37 @@
+name: semgrep
+
+on:
+  workflow_call:
+    inputs:
+      config:
+        required: false
+        default: "p/default"
+        type: string
+      severity:
+        required: false
+        default: "ERROR,WARNING"
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run semgrep
+        id: semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: ${{ inputs.config }}
+          severity: ${{ inputs.severity }}
+          sarif_file: semgrep.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif

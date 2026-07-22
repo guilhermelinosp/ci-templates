@@ -1,0 +1,82 @@
+name: kube-resource
+
+on:
+  workflow_call:
+    inputs:
+      manifests-dir:
+        required: false
+        default: "."
+        type: string
+      cpu-request-max:
+        required: false
+        default: "2"
+        type: string
+      memory-request-max:
+        required: false
+        default: "4Gi"
+        type: string
+      cpu-limit-max:
+        required: false
+        default: "4"
+        type: string
+      memory-limit-max:
+        required: false
+        default: "8Gi"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install yq
+        run: |
+          wget -q "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+          chmod +x yq_linux_amd64
+          sudo mv yq_linux_amd64 /usr/local/bin/yq
+
+      - name: Check K8s resource requests/limits
+        run: |
+          ERRORS=0
+          CPU_REQ_MAX="${{ inputs.cpu-request-max }}"
+          MEM_REQ_MAX="${{ inputs.memory-request-max }}"
+          CPU_LIM_MAX="${{ inputs.cpu-limit-max }}"
+          MEM_LIM_MAX="${{ inputs.memory-limit-max }}"
+
+          find ${{ inputs.manifests-dir }} -name '*.yaml' -o -name '*.yml' | while read -r FILE; do
+            yq eval '. | select(.kind == "Deployment" or .kind == "StatefulSet" or .kind == "DaemonSet")' "$FILE" 2>/dev/null | while read -r _; do
+              NAME=$(yq eval '.metadata.name' "$FILE" 2>/dev/null)
+              echo "--- Checking: $NAME ($FILE) ---"
+
+              CPU_REQ=$(yq eval '.spec.template.spec.containers[].resources.requests.cpu' "$FILE" 2>/dev/null)
+              MEM_REQ=$(yq eval '.spec.template.spec.containers[].resources.requests.memory' "$FILE" 2>/dev/null)
+              CPU_LIM=$(yq eval '.spec.template.spec.containers[].resources.limits.cpu' "$FILE" 2>/dev/null)
+              MEM_LIM=$(yq eval '.spec.template.spec.containers[].resources.limits.memory' "$FILE" 2>/dev/null)
+
+              [ -z "$CPU_REQ" ] && echo "  ⚠️  No CPU request" && ERRORS=$((ERRORS+1))
+              [ -z "$MEM_REQ" ] && echo "  ⚠️  No memory request" && ERRORS=$((ERRORS+1))
+
+              if [ -n "$CPU_REQ" ]; then
+                echo "  CPU request: $CPU_REQ"
+              fi
+              if [ -n "$MEM_REQ" ]; then
+                echo "  Memory request: $MEM_REQ"
+              fi
+              if [ -n "$CPU_LIM" ]; then
+                echo "  CPU limit: $CPU_LIM"
+              fi
+              if [ -n "$MEM_LIM" ]; then
+                echo "  Memory limit: $MEM_LIM"
+              fi
+            done
+          done
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::warning::$ERRORS resources missing requests/limits"
+          else
+            echo "✅ All resources have requests and limits"
+          fi
