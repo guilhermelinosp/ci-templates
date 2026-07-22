@@ -9,7 +9,7 @@ on:
         type: string
     outputs:
       version:
-        value: ${{ jobs.release.outputs.version }}
+        value: ${{ jobs.semver.outputs.version }}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  semver:
     runs-on: ${{ inputs.runner }}
     outputs:
       version: ${{ steps.semver.outputs.tag }}

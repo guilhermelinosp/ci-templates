@@ -9,14 +9,14 @@ on:
         type: string
     outputs:
       image:
-        value: ${{ jobs.buildah.outputs.image }}
+        value: ${{ jobs.image.outputs.image }}
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  buildah:
+  image:
     runs-on: ${{ inputs.runner }}
     outputs:
       image: ${{ steps.export.outputs.image }}

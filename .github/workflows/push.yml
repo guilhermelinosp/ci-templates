@@ -24,7 +24,7 @@ permissions:
   packages: write
 
 jobs:
-  push:
+  promote:
     runs-on: ${{ inputs.runner }}
     env:
       GH_TOKEN: ${{ github.token }}
