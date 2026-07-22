@@ -65,6 +65,10 @@ jobs:
             echo "Invalid tag ($TAG) — skipping"
             exit 0
           fi
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — skipping"
+            exit 0
+          fi
           git tag "$TAG"
           git push origin "$TAG"
 

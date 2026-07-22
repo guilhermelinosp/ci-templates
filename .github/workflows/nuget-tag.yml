@@ -38,5 +38,10 @@ jobs:
 
       - name: Create tag
         run: |
-          git tag "${{ steps.semver.outputs.tag }}"
-          git push origin "${{ steps.semver.outputs.tag }}"
+          TAG="${{ steps.semver.outputs.tag }}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — skipping"
+            exit 0
+          fi
+          git tag "$TAG"
+          git push origin "$TAG"
