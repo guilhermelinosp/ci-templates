@@ -81,4 +81,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git tag -f latest && git push origin latest --force-with-lease
+          # latest is an intentionally mutable tag — force push is correct
+          git tag -f latest && git push origin latest --force
