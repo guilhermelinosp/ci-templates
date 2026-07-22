@@ -1,0 +1,70 @@
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        required: true
+        type: string
+      release-name:
+        required: true
+        type: string
+      chart-dir:
+        required: false
+        default: "."
+        type: string
+      kubeconfig-secret:
+        required: false
+        default: "KUBECONFIG"
+        type: string
+      values-file:
+        required: false
+        default: ""
+        type: string
+      image:
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets[inputs.kubeconfig-secret] }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Helm upgrade
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.values-file }}" ]; then
+            ARGS="$ARGS -f ${{ inputs.values-file }}"
+          fi
+          if [ -n "${{ inputs.image }}" ]; then
+            ARGS="$ARGS --set image.repository=${{ inputs.image }}"
+          fi
+          helm upgrade --install ${{ inputs.release-name }} \
+            ${{ inputs.chart-dir }} \
+            --namespace ${{ inputs.namespace }} \
+            --create-namespace \
+            --wait \
+            --timeout 5m \
+            $ARGS
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/${{ inputs.release-name }} \
+            --namespace ${{ inputs.namespace }} \
+            --timeout 5m

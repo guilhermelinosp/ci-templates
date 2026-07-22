@@ -1,0 +1,37 @@
+name: sbom
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      format:
+        required: false
+        default: "spdx-json"
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: |
+          syft ${{ inputs.image }} \
+            -o ${{ inputs.format }} \
+            --file sbom.${{ inputs.format }}
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.${{ inputs.format }}
