@@ -1,0 +1,56 @@
+name: test-all
+
+on: workflow_dispatch
+
+permissions: write-all
+
+jobs:
+  # 1. buildah — pre-installed on ubuntu-latest, no apt install needed
+  test-buildah:
+    uses: ./.github/workflows/buildah.yml
+
+  # 2. cosign — needs buildah installed (was missing — critical fix)
+  test-cosign:
+    uses: ./.github/workflows/cosign.yml
+    with:
+      image: ghcr.io/guilhermelinosp/ci-templates@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  # 3. buildx — docker buildx pre-installed
+  test-buildx:
+    uses: ./.github/workflows/buildx.yml
+
+  # 4. trivy — install + scan (removed || true)
+  test-trivy:
+    uses: ./.github/workflows/trivy.yml
+    with:
+      image: ghcr.io/guilhermelinosp/ci-templates@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  # 5. push — skopeo install + login
+  test-push:
+    uses: ./.github/workflows/push.yml
+    with:
+      image: ghcr.io/guilhermelinosp/ci-templates@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  # 6. merge-check — conventional commits validation
+  test-merge-check:
+    uses: ./.github/workflows/merge-check.yml
+
+  # 7. auto-pr — PR creation logic
+  test-auto-pr:
+    uses: ./.github/workflows/auto-pr.yml
+
+  # 8. nuget-build — .NET build
+  test-nuget-build:
+    uses: ./.github/workflows/nuget-build.yml
+
+  # 9. nuget-tag — semver bump with beta support
+  test-nuget-tag:
+    uses: ./.github/workflows/nuget-tag.yml
+
+  # 10. nuget-release — duplicate-safe release creation
+  test-nuget-release:
+    uses: ./.github/workflows/nuget-release.yml
+
+  # 11. release — semver bump + tag skip (if tag exists)
+  test-release:
+    uses: ./.github/workflows/release.yml
