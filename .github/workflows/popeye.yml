@@ -1,0 +1,41 @@
+name: popeye
+
+# K8s cluster sanitizer
+# Secrets: KUBECONFIG (via kubeconfig-secret input)
+
+on:
+  workflow_call:
+    inputs:
+      kubeconfig-secret:
+        required: false
+        default: "KUBECONFIG"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets[inputs.kubeconfig-secret] }}" | base64 -d > $HOME/.kube/config
+
+      - name: Run popeye
+        run: |
+          docker run --rm \
+            -v $HOME/.kube:/root/.kube \
+            derailed/popeye \
+            --out /tmp/popeye.sarif \
+            --output sarif
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: popeye-report
+          path: /tmp/popeye.sarif

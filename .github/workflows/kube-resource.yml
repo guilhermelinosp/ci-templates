@@ -1,0 +1,71 @@
+name: kube-resource
+
+# Analyze K8s resource requests/limits
+# Inputs: manifests-dir (default: .)
+
+on:
+  workflow_call:
+    inputs:
+      manifests-dir:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install yq
+        run: |
+          wget -q "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+          chmod +x yq_linux_amd64
+          sudo mv yq_linux_amd64 /usr/local/bin/yq
+
+      - name: Check K8s resource requests/limits
+        run: |
+          ERRORS=0
+          ERROR_FILE=$(mktemp)
+          echo 0 > "$ERROR_FILE"
+
+          set +e
+          while IFS= read -r -d '' FILE; do
+            KIND=$(yq eval '.kind' "$FILE" 2>/dev/null)
+            case "$KIND" in
+              Deployment|StatefulSet|DaemonSet)
+                NAME=$(yq eval '.metadata.name' "$FILE" 2>/dev/null)
+                echo "--- Checking: $NAME ($FILE) ---"
+
+                CPU_REQ=$(yq eval '.spec.template.spec.containers[0].resources.requests.cpu' "$FILE" 2>/dev/null)
+                MEM_REQ=$(yq eval '.spec.template.spec.containers[0].resources.requests.memory' "$FILE" 2>/dev/null)
+
+                if [ -z "$CPU_REQ" ] || [ "$CPU_REQ" = "null" ]; then
+                  echo "  No CPU request"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "  CPU request: $CPU_REQ"
+                fi
+
+                if [ -z "$MEM_REQ" ] || [ "$MEM_REQ" = "null" ]; then
+                  echo "  No memory request"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "  Memory request: $MEM_REQ"
+                fi
+                ;;
+            esac
+          done < <(find "${{ inputs.manifests-dir }}" -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 2>/dev/null)
+          set -e
+
+          echo "$ERRORS" > "$ERROR_FILE"
+          COUNT=$(cat "$ERROR_FILE")
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning::$COUNT resources missing requests"
+            exit 1
+          fi
+          echo "All resources have requests"

@@ -1,0 +1,40 @@
+name: dependabot-auto-merge
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          alert-lookup: true
+
+      - name: Approve PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr review "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --approve
+
+      - name: Enable auto-merge
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+          || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --auto --squash

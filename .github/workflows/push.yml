@@ -1,5 +1,9 @@
 name: push
 
+# Promote container images with skopeo
+# Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
+# Inputs: image, version, runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:
@@ -24,10 +28,8 @@ permissions:
   packages: write
 
 jobs:
-  push:
+  promote:
     runs-on: ${{ inputs.runner }}
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Install skopeo
         run: sudo apt-get update && sudo apt-get install -y skopeo

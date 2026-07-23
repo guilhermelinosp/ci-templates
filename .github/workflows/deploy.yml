@@ -1,0 +1,77 @@
+name: deploy
+
+# Helm upgrade via kubeconfig secret
+# Secrets: KUBECONFIG (base64 kubeconfig, via kubeconfig-secret input)
+# Inputs: namespace, release-name, chart-dir (default: .), kubeconfig-secret (default: KUBECONFIG), values-file, image
+
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        required: true
+        type: string
+      release-name:
+        required: true
+        type: string
+      chart-dir:
+        required: false
+        default: "."
+        type: string
+      kubeconfig-secret:
+        required: false
+        default: "KUBECONFIG"
+        type: string
+      values-file:
+        required: false
+        default: ""
+        type: string
+      image:
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: latest
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets[inputs.kubeconfig-secret] }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Helm upgrade
+        run: |
+          RELEASE="${{ inputs.release-name }}"
+          CHART="${{ inputs.chart-dir }}"
+          NS="${{ inputs.namespace }}"
+          ARGS=""
+          if [ -n "${{ inputs.values-file }}" ]; then
+            ARGS="$ARGS -f ${{ inputs.values-file }}"
+          fi
+          if [ -n "${{ inputs.image }}" ]; then
+            ARGS="$ARGS --set image.repository=${{ inputs.image }}"
+          fi
+          helm upgrade --install "$RELEASE" \
+            "$CHART" \
+            --namespace "$NS" \
+            --create-namespace \
+            --wait \
+            --timeout 5m \
+            $ARGS
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/${{ inputs.release-name }} \
+            --namespace ${{ inputs.namespace }} \
+            --timeout 5m

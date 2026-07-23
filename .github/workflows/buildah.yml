@@ -1,5 +1,9 @@
 name: buildah
 
+# Builds and pushes container images using buildah
+# Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
+# Inputs: runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:
@@ -9,22 +13,19 @@ on:
         type: string
     outputs:
       image:
-        value: ${{ jobs.buildah.outputs.image }}
+        value: ${{ jobs.image.outputs.image }}
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  buildah:
+  image:
     runs-on: ${{ inputs.runner }}
     outputs:
       image: ${{ steps.export.outputs.image }}
     steps:
       - uses: actions/checkout@v7
-
-      - name: Install buildah & skopeo
-        run: sudo apt-get update && sudo apt-get install -y buildah skopeo
 
       - name: Login GHCR
         run: |

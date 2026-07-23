@@ -1,0 +1,51 @@
+name: helm-lint
+
+# Helm lint + template + kubeconform
+# Inputs: chart-dir (default: .), kube-version (default: 1.31.0)
+
+on:
+  workflow_call:
+    inputs:
+      chart-dir:
+        required: false
+        default: "."
+        type: string
+      kube-version:
+        required: false
+        default: "1.31.0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: latest
+
+      - name: Helm lint
+        run: |
+          helm lint ${{ inputs.chart-dir }} --strict
+
+      - name: Helm template
+        run: |
+          helm template test-release ${{ inputs.chart-dir }} > /dev/null
+
+      - name: Install kubeconform
+        run: |
+          wget -q https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar xzf kubeconform-linux-amd64.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate against K8s schema
+        run: |
+          helm template test-release ${{ inputs.chart-dir }} \
+            | kubeconform \
+              -kubernetes-version ${{ inputs.kube-version }} \
+              -strict

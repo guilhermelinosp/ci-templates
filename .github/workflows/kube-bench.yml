@@ -1,0 +1,47 @@
+name: kube-bench
+
+# CIS Kubernetes benchmark
+# Inputs: version (default: latest), config-file
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: false
+        default: "latest"
+        type: string
+      config-file:
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run kube-bench
+        run: |
+          CONFIG=""
+          if [ -n "${{ inputs.config-file }}" ]; then
+            CONFIG="-v ${{ inputs.config-file }}:/etc/kube-bench/cfg/config.yaml"
+          fi
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            $CONFIG \
+            aquasec/kube-bench:${{ inputs.version }} \
+            run \
+            --exitcode 1 \
+            --outputfile /tmp/kube-bench.sarif \
+            --format sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: /tmp/kube-bench.sarif

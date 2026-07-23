@@ -1,0 +1,38 @@
+name: terraform-docs
+
+# Auto-generate Terraform docs on PRs
+# Inputs: dir (default: .), output-file (default: README.md), output-format (default: markdown table)
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+      output-file:
+        required: false
+        default: "README.md"
+        type: string
+      output-format:
+        required: false
+        default: "markdown table"
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Generate terraform docs
+        uses: terraform-docs/gh-actions@v1.4.1
+        with:
+          working-dir: ${{ inputs.dir }}
+          output-file: ${{ inputs.output-file }}
+          output-format: ${{ inputs.output-format }}
+          git-push: true

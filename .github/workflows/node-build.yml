@@ -1,0 +1,47 @@
+name: node-build
+
+# Node.js install, lint, build, test
+# Inputs: node-version (default: 22), working-directory (default: .)
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        default: "22"
+        type: string
+      working-directory:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Test
+        run: npm test --if-present

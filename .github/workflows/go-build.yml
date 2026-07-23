@@ -1,0 +1,56 @@
+name: go-build
+
+# Go build, vet, lint, test with cache
+# Inputs: go-version (default: stable), golangci-version (default: latest), working-directory (default: .)
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: false
+        default: "stable"
+        type: string
+      golangci-version:
+        required: false
+        default: "latest"
+        type: string
+      working-directory:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Tidy
+        run: go mod tidy
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ inputs.golangci-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test -count=1 -race -shuffle=on ./...

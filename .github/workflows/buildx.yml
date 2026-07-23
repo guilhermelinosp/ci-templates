@@ -1,5 +1,9 @@
 name: buildx
 
+# Multi-arch container build with docker buildx + SBOM attestation
+# Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
+# Inputs: runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:
@@ -9,14 +13,14 @@ on:
         type: string
     outputs:
       image:
-        value: ${{ jobs.buildx.outputs.image }}
+        value: ${{ jobs.builder.outputs.image }}
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  buildx:
+  builder:
     runs-on: ${{ inputs.runner }}
     outputs:
       image: ${{ steps.export.outputs.image }}

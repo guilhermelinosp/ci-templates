@@ -1,0 +1,66 @@
+name: sonarcloud
+
+# SonarCloud analysis + PR decoration
+# Secrets: SONAR_TOKEN (required)
+# Inputs: project-key, organization, dotnet-version, go-version
+
+on:
+  workflow_call:
+    inputs:
+      project-key:
+        required: true
+        type: string
+      organization:
+        required: true
+        type: string
+      language:
+        required: false
+        default: "other"
+        type: string
+      dotnet-version:
+        required: false
+        default: ""
+        type: string
+      go-version:
+        required: false
+        default: ""
+        type: string
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        if: ${{ inputs.dotnet-version != '' }}
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Setup Go
+        if: ${{ inputs.go-version != '' }}
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: |
+            -Dsonar.projectKey=${{ inputs.project-key }}
+            -Dsonar.organization=${{ inputs.organization }}
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}

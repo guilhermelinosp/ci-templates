@@ -1,0 +1,128 @@
+name: terraform-apply
+
+# Terraform plan + apply with environment gating
+# Secrets: TF_API_TOKEN, AWS keys (optional)
+# Inputs: environment, dir (default: .), terraform-version (default: latest), aws-role-to-assume, aws-region (default: us-east-1), destroy (default: false)
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+      terraform-version:
+        required: false
+        default: "latest"
+        type: string
+      environment:
+        required: true
+        type: string
+      destroy:
+        required: false
+        default: false
+        type: boolean
+      aws-role-to-assume:
+        required: false
+        default: ""
+        type: string
+      aws-region:
+        required: false
+        default: "us-east-1"
+        type: string
+    secrets:
+      TF_API_TOKEN:
+        required: false
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      plan-exitcode: ${{ steps.plan.outputs.exitcode }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws-role-to-assume != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-role-to-assume }}
+          role-session-name: terraform-plan-${{ github.run_id }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform init
+        run: |
+          terraform -chdir=${{ inputs.dir }} init
+
+      - name: Terraform plan
+        id: plan
+        run: |
+          terraform -chdir=${{ inputs.dir }} plan \
+            -out=tfplan \
+            -no-color
+        continue-on-error: true
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: ${{ inputs.dir }}/tfplan
+
+  apply:
+    needs: [plan]
+    if: |
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      && needs.plan.outputs.plan-exitcode == '0'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws-role-to-assume != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-role-to-assume }}
+          role-session-name: terraform-apply-${{ github.run_id }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: ${{ inputs.dir }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform init
+        run: |
+          terraform -chdir=${{ inputs.dir }} init
+
+      - name: Terraform apply
+        if: ${{ !inputs.destroy }}
+        run: |
+          terraform -chdir=${{ inputs.dir }} apply tfplan
+
+      - name: Terraform destroy
+        if: ${{ inputs.destroy }}
+        run: |
+          terraform -chdir=${{ inputs.dir }} destroy -auto-approve

@@ -1,5 +1,8 @@
 name: dotnet-build
 
+# .NET restore, build, test
+# Inputs: dotnet-version (default: 10.0.301), version, runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:
@@ -33,7 +36,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -50,21 +53,18 @@ jobs:
 
       - name: Detect solution
         run: |
-          SLN=$(find . -maxdepth 2 -name '*.slnx' -o -name '*.sln' 2>/dev/null | head -1 || echo "")
+          SLN=$(find . -maxdepth 2 \( -name '*.slnx' -o -name '*.sln' \) 2>/dev/null | head -1 || echo "")
           echo "SLN=$SLN" >> $GITHUB_ENV
 
       - name: Restore
+        if: env.SLN != ''
         run: |
-          [ -n "$SLN" ] && dotnet restore "$SLN" || echo "no solution found"
+          dotnet restore "$SLN"
 
       - name: Build
         run: |
           [ -n "$SLN" ] && dotnet build "$SLN" --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Test
-        env:
-          HELLNET_SERVICE_NAME: test-service
-          HELLNET_OTLP_ENDPOINT: http://localhost:4317
-          HELLNET_OTLP_PROTOCOL: grpc
         run: |
           [ -n "$SLN" ] && dotnet test "$SLN" --configuration Release --no-build --verbosity normal

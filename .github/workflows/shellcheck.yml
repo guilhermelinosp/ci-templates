@@ -1,0 +1,35 @@
+name: shellcheck
+
+# ShellCheck linter
+# Inputs: dir (default: .)
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: ShellCheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          reporter: github-check
+          level: error
+          filter_mode: nofilter
+          workdir: ${{ inputs.dir }}
+
+      - name: Check formatting (shfmt)
+        run: |
+          sudo apt-get update && sudo apt-get install -y shfmt
+          shfmt -d $(find ${{ inputs.dir }} -name '*.sh' -not -path './.git/*' 2>/dev/null) || \
+            echo "Run 'shfmt -w .' to fix formatting"

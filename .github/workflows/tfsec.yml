@@ -1,0 +1,45 @@
+name: tfsec
+
+# Terraform security scanner
+# Inputs: dir (default: .), config-file, soft-fail (default: false)
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+      config-file:
+        required: false
+        default: ""
+        type: string
+      soft-fail:
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.4
+        with:
+          working_directory: ${{ inputs.dir }}
+          config_file: ${{ inputs.config-file }}
+          soft_fail: ${{ inputs.soft-fail }}
+          sarif: true
+          sarif_file: tfsec.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: tfsec.sarif

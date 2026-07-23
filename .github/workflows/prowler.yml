@@ -1,0 +1,53 @@
+name: prowler
+
+# AWS CIS security benchmarking
+# Requires: AWS OIDC (role-to-assume)
+# Inputs: role-to-assume, aws-region (default: us-east-1), checks (default: aws_findings)
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        required: false
+        default: "us-east-1"
+        type: string
+      checks:
+        required: false
+        default: "aws_findings"
+        type: string
+      role-to-assume:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.role-to-assume }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Prowler scan
+        uses: prowler-cloud/prowler@v4.2.0
+        with:
+          args: >
+            -M sarif
+            -F prowler-report
+            -r ${{ inputs.aws-region }}
+            -c ${{ inputs.checks }}
+            --ignore-exit-code-eliminated
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: prowler-report.sarif

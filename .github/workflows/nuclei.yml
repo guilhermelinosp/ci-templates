@@ -1,0 +1,43 @@
+name: nuclei
+
+# ProjectDiscovery nuclei vulnerability scanner
+# Inputs: target-url, severity (default: medium,high,critical), rate-limit (default: 150)
+
+on:
+  workflow_call:
+    inputs:
+      target-url:
+        required: true
+        type: string
+      severity:
+        required: false
+        default: "medium,high,critical"
+        type: string
+      rate-limit:
+        required: false
+        default: 150
+        type: number
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Nuclei scan
+        uses: projectdiscovery/nuclei-action@v1
+        with:
+          target: ${{ inputs.target-url }}
+          severity: ${{ inputs.severity }}
+          rate-limit: ${{ inputs.rate-limit }}
+          sarif-export: nuclei.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: nuclei.sarif

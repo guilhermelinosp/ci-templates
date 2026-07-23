@@ -1,0 +1,41 @@
+name: osv-scanner
+
+# Google OSV dependency vulnerability scanner
+# Inputs: dir (default: .)
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install osv-scanner
+        run: |
+          wget -q "https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64"
+          mv osv-scanner_linux_amd64 osv-scanner
+          chmod +x osv-scanner
+          sudo mv osv-scanner /usr/local/bin/
+
+      - name: Run osv-scanner
+        run: |
+          osv-scanner scan --recursive --format sarif \
+            --output osv-results.sarif \
+            ${{ inputs.dir }} || true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: osv-results.sarif

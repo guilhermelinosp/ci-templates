@@ -1,5 +1,10 @@
 name: cosign
 
+# Sign container images with cosign (keyless, OCI referrers)
+# Env: COSIGN_EXPERIMENTAL=1 (auto-set)
+# Secrets: GITHUB_TOKEN (auto)
+# Inputs: image (digest required), runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:
@@ -11,18 +16,21 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
 jobs:
   sign:
     runs-on: ${{ inputs.runner }}
 
-    permissions:
-      contents: read
-      id-token: write
-      packages: write
-
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v4
+
+      - name: Install buildah
+        run: sudo apt-get update && sudo apt-get install -y buildah
 
       - name: Authenticate to GHCR
         run: |

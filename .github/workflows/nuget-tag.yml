@@ -1,5 +1,7 @@
 name: nuget-tag
 
+# Semver bump + git tag from conventional commits
+
 on:
   workflow_call:
 
@@ -17,19 +19,31 @@ jobs:
       - name: Bump version
         id: semver
         run: |
-          ULTIMA_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
-          if [ -z "$ULTIMA_TAG" ]; then
+          LAST_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$' | head -1 || echo "")
+          if [ -z "$LAST_TAG" ]; then
             echo "tag=v1.0.0" >> $GITHUB_OUTPUT
             exit 0
           fi
-          IFS='.' read -r M m p <<< "${ULTIMA_TAG#v}"
+          # Check if last tag was beta
+          if [[ "$LAST_TAG" =~ -beta\.([0-9]+)$ ]]; then
+            BETA_NUM=${BASH_REMATCH[1]}
+            BASE="${LAST_TAG%-beta*}"
+            echo "tag=${BASE}-beta.$((BETA_NUM + 1))" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          IFS='.' read -r M m p <<< "${LAST_TAG#v}"
           M=${M:-1}; m=${m:-0}; p=${p:-0}
-          git log --format="%s" "$ULTIMA_TAG..HEAD" 2>/dev/null | grep -q "BREAKING CHANGE\|!:" && { M=$((M+1)); m=0; p=0; } \
-            || git log --format="%s" "$ULTIMA_TAG..HEAD" 2>/dev/null | grep -q "^feat" && { m=$((m+1)); p=0; } \
+          git log --format="%s" "$LAST_TAG..HEAD" 2>/dev/null | grep -q "BREAKING CHANGE\|!:" && { M=$((M+1)); m=0; p=0; } \
+            || git log --format="%s" "$LAST_TAG..HEAD" 2>/dev/null | grep -q "^feat" && { m=$((m+1)); p=0; } \
             || p=$((p+1))
           echo "tag=v${M}.${m}.${p}" >> $GITHUB_OUTPUT
 
       - name: Create tag
         run: |
-          git tag "${{ steps.semver.outputs.tag }}"
-          git push origin "${{ steps.semver.outputs.tag }}"
+          TAG="${{ steps.semver.outputs.tag }}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — skipping"
+            exit 0
+          fi
+          git tag "$TAG"
+          git push origin "$TAG"

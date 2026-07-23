@@ -1,0 +1,42 @@
+name: conftest
+
+# OPA policy-as-code for Kubernetes configs
+# Inputs: policy-dir (default: ./policy), target-dir (default: .), policy-namespace (default: kubernetes)
+
+on:
+  workflow_call:
+    inputs:
+      policy-dir:
+        required: false
+        default: "./policy"
+        type: string
+      target-dir:
+        required: false
+        default: "."
+        type: string
+      policy-namespace:
+        required: false
+        default: "kubernetes"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install conftest
+        run: |
+          wget -q "https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_linux_amd64.tar.gz"
+          tar xzf conftest_linux_amd64.tar.gz
+          sudo mv conftest /usr/local/bin/
+
+      - name: Run conftest
+        run: |
+          conftest test ${{ inputs.target-dir }} \
+            --policy ${{ inputs.policy-dir }} \
+            --namespace ${{ inputs.policy-namespace }} \
+            --all-namespaces || true

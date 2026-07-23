@@ -1,5 +1,8 @@
 name: nuget-publish
 
+# NuGet pack + push to GitHub Packages + NuGet.org
+# Secrets: GITHUB_TOKEN (auto), NUGET_API_KEY (optional)
+
 on:
   workflow_call:
 
@@ -14,7 +17,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.x'
 
@@ -29,8 +32,6 @@ jobs:
           [ -n "$SLN" ] && dotnet pack "$SLN" --configuration Release --output ./artifacts -p:Version=$VERSION
 
       - name: Publish to GitHub Packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
             --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \

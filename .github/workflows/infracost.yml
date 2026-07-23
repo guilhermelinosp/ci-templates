@@ -1,0 +1,53 @@
+name: infracost
+
+# Terraform cloud cost estimation (FinOps)
+# Secrets: INFRACOST_API_KEY (required - infracost.io)
+# Inputs: project-path (default: .), currency (default: USD), show-skipped (default: false)
+
+on:
+  workflow_call:
+    inputs:
+      project-path:
+        required: false
+        default: "."
+        type: string
+      currency:
+        required: false
+        default: "USD"
+        type: string
+      show-skipped:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      INFRACOST_API_KEY:
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate cost estimate
+        run: |
+          infracost breakdown --path ${{ inputs.project-path }} \
+            --format json \
+            --out-file /tmp/infracost.json
+
+      - name: Post comment
+        if: github.event_name == 'pull_request'
+        uses: infracost/actions/comment@v3
+        with:
+          path: /tmp/infracost.json
+          currency: ${{ inputs.currency }}
+          show-skipped: ${{ inputs.show-skipped }}

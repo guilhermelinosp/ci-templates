@@ -1,0 +1,59 @@
+name: reviewdog
+
+# Automated code review with PR comments
+# Inputs: golangci-lint (default: true), misspell (default: true), shellcheck (default: true), level (default: error)
+
+on:
+  workflow_call:
+    inputs:
+      golangci-lint:
+        required: false
+        default: true
+        type: boolean
+      misspell:
+        required: false
+        default: true
+        type: boolean
+      shellcheck:
+        required: false
+        default: true
+        type: boolean
+      level:
+        required: false
+        default: "error"
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run golangci-lint
+        if: ${{ inputs.golangci-lint }}
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          reporter: github-pr-review
+          level: ${{ inputs.level }}
+          filter_mode: diff_context
+
+      - name: Run misspell
+        if: ${{ inputs.misspell }}
+        uses: reviewdog/action-misspell@v1
+        with:
+          reporter: github-pr-review
+          level: ${{ inputs.level }}
+          locale: "US"
+
+      - name: Run shellcheck
+        if: ${{ inputs.shellcheck }}
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          reporter: github-pr-review
+          level: ${{ inputs.level }}
+          filter_mode: diff_context
