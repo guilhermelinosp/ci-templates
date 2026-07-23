@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Configure AWS credentials for Terraform
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ inputs.role-to-assume }}
           role-session-name: terraform-${{ github.run_id }}
