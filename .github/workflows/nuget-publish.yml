@@ -1,5 +1,8 @@
 name: nuget-publish
 
+# NuGet pack + push to GitHub Packages + NuGet.org
+# Secrets: GITHUB_TOKEN (auto), NUGET_API_KEY (optional)
+
 on:
   workflow_call:
 

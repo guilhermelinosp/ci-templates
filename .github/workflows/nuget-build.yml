@@ -1,5 +1,7 @@
 name: nuget-build
 
+# NuGet .NET restore, build, test
+
 on:
   workflow_call:
 

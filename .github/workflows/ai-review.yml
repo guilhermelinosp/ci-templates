@@ -1,5 +1,8 @@
 name: ai-review
 
+# Requires: AI_API_KEY, AI_API_ENDPOINT (optional - defaults to OpenAI)
+# Inputs: model (default: gpt-4o), max-comments (default: 10), review-focus (default: security,performance,bugs,best-practices)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,8 @@
 name: kube-bench
 
+# CIS Kubernetes benchmark
+# Inputs: version (default: latest), config-file
+
 on:
   workflow_call:
     inputs:

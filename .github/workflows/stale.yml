@@ -1,5 +1,9 @@
 name: stale
 
+# Stale issue/PR management
+# Secrets: GITHUB_TOKEN (auto)
+# Inputs: days-before-stale (default: 60), days-before-close (default: 14)
+
 on:
   workflow_call:
     inputs:

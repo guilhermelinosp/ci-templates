@@ -1,5 +1,8 @@
 name: shellcheck
 
+# ShellCheck linter
+# Inputs: dir (default: .)
+
 on:
   workflow_call:
     inputs:

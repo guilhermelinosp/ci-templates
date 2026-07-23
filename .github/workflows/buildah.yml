@@ -1,5 +1,9 @@
 name: buildah
 
+# Builds and pushes container images using buildah
+# Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
+# Inputs: runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:

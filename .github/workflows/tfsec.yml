@@ -1,5 +1,8 @@
 name: tfsec
 
+# Terraform security scanner
+# Inputs: dir (default: .), config-file, soft-fail (default: false)
+
 on:
   workflow_call:
     inputs:

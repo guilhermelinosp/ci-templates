@@ -1,5 +1,8 @@
 name: kics
 
+# Checkmarx KICS IaC scanning
+# Inputs: dir (default: .), fail-on (default: high)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,8 @@
 name: gitleaks
 
+# Git secret scanning
+# Secrets: GITHUB_TOKEN (auto)
+
 on:
   workflow_call:
 

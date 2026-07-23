@@ -1,5 +1,8 @@
 name: checkov
 
+# IaC security scanning (Terraform, K8s, Docker, Helm)
+# Inputs: dir (default: .), framework (default: all), quiet (default: false)
+
 on:
   workflow_call:
     inputs:

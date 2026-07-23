@@ -1,5 +1,9 @@
 name: snyk
 
+# Snyk vulnerability scanning
+# Secrets: SNYK_TOKEN (required)
+# Inputs: project-type (default: dotnet), severity (default: high), monitor (default: false)
+
 on:
   workflow_call:
     inputs:

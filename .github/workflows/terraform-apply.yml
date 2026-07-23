@@ -1,5 +1,9 @@
 name: terraform-apply
 
+# Terraform plan + apply with environment gating
+# Secrets: TF_API_TOKEN, AWS keys (optional)
+# Inputs: environment, dir (default: .), terraform-version (default: latest), aws-role-to-assume, aws-region (default: us-east-1), destroy (default: false)
+
 on:
   workflow_call:
     inputs:

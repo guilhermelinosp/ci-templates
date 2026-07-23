@@ -1,5 +1,9 @@
 name: sonarcloud
 
+# SonarCloud analysis + PR decoration
+# Secrets: SONAR_TOKEN (required)
+# Inputs: project-key, organization, dotnet-version, go-version
+
 on:
   workflow_call:
     inputs:

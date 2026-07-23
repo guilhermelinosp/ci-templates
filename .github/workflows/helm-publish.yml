@@ -1,5 +1,9 @@
 name: helm-publish
 
+# Package and publish Helm charts to OCI
+# Secrets: GITHUB_TOKEN (auto)
+# Inputs: chart-dir (default: .), registry (default: oci://ghcr.io/org/helm-charts), version
+
 on:
   workflow_call:
     inputs:

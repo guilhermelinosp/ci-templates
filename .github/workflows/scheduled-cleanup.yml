@@ -1,5 +1,9 @@
 name: scheduled-cleanup
 
+# Cleanup old GHCR container packages
+# Secrets: GHCR_PAT (required - packages:write scope)
+# Inputs: package-names, days-old (default: 90), dry-run (default: true)
+
 on:
   workflow_call:
     inputs:

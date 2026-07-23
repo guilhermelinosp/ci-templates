@@ -1,5 +1,8 @@
 name: helm-docs
 
+# Auto-generate Helm chart README
+# Inputs: chart-dir (default: .), template-values (default: values.yaml)
+
 on:
   workflow_call:
     inputs:

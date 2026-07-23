@@ -1,5 +1,8 @@
 name: gosec
 
+# Go security static analysis (gosec)
+# Inputs: dir (default: ./...), severity (default: medium), confidence (default: medium)
+
 on:
   workflow_call:
     inputs:

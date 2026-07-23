@@ -1,5 +1,9 @@
 name: buildx
 
+# Multi-arch container build with docker buildx + SBOM attestation
+# Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
+# Inputs: runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,7 @@
 name: nuget-tag
 
+# Semver bump + git tag from conventional commits
+
 on:
   workflow_call:
 

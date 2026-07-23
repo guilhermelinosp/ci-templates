@@ -1,5 +1,8 @@
 name: osv-scanner
 
+# Google OSV dependency vulnerability scanner
+# Inputs: dir (default: .)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,7 @@
 name: scorecard
 
+# OpenSSF Scorecard - repository security posture
+
 on:
   workflow_call:
 

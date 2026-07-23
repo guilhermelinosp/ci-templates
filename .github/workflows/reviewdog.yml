@@ -1,5 +1,8 @@
 name: reviewdog
 
+# Automated code review with PR comments
+# Inputs: golangci-lint (default: true), misspell (default: true), shellcheck (default: true), level (default: error)
+
 on:
   workflow_call:
     inputs:

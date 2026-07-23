@@ -1,5 +1,9 @@
 name: deploy
 
+# Helm upgrade via kubeconfig secret
+# Secrets: KUBECONFIG (base64 kubeconfig, via kubeconfig-secret input)
+# Inputs: namespace, release-name, chart-dir (default: .), kubeconfig-secret (default: KUBECONFIG), values-file, image
+
 on:
   workflow_call:
     inputs:

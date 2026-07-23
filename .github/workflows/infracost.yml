@@ -1,5 +1,9 @@
 name: infracost
 
+# Terraform cloud cost estimation (FinOps)
+# Secrets: INFRACOST_API_KEY (required - infracost.io)
+# Inputs: project-path (default: .), currency (default: USD), show-skipped (default: false)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,9 @@
 name: prowler
 
+# AWS CIS security benchmarking
+# Requires: AWS OIDC (role-to-assume)
+# Inputs: role-to-assume, aws-region (default: us-east-1), checks (default: aws_findings)
+
 on:
   workflow_call:
     inputs:

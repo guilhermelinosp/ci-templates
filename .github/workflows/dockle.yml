@@ -1,5 +1,8 @@
 name: dockle
 
+# Docker container CIS benchmark linter
+# Inputs: image, exit-code (default: 1)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,8 @@
 name: terraform-validate
 
+# Terraform fmt + init + validate
+# Inputs: dir (default: .), terraform-version (default: latest)
+
 on:
   workflow_call:
     inputs:

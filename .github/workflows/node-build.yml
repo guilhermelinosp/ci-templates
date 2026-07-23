@@ -1,5 +1,8 @@
 name: node-build
 
+# Node.js install, lint, build, test
+# Inputs: node-version (default: 22), working-directory (default: .)
+
 on:
   workflow_call:
     inputs:

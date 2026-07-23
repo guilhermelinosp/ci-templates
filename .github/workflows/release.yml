@@ -1,5 +1,8 @@
 name: release
 
+# Semver bump + git tag + GitHub release
+# Inputs: runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:

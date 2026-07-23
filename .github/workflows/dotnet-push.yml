@@ -1,5 +1,9 @@
 name: dotnet-push
 
+# .NET pack, NuGet push, GitHub release
+# Secrets: GITHUB_TOKEN (auto), NUGET_API_KEY (optional)
+# Inputs: dotnet-version (default: 10.0.301), version, runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:

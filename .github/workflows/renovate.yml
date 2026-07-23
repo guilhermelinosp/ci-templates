@@ -1,5 +1,9 @@
 name: renovate
 
+# Renovate dependency update automation
+# Secrets: RENOVATE_TOKEN (required - PAT with repo scope)
+# Inputs: dry-run (default: false)
+
 on:
   workflow_call:
     inputs:

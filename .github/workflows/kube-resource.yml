@@ -1,5 +1,8 @@
 name: kube-resource
 
+# Analyze K8s resource requests/limits
+# Inputs: manifests-dir (default: .)
+
 on:
   workflow_call:
     inputs:

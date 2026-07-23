@@ -1,5 +1,8 @@
 name: popeye
 
+# K8s cluster sanitizer
+# Secrets: KUBECONFIG (via kubeconfig-secret input)
+
 on:
   workflow_call:
     inputs:

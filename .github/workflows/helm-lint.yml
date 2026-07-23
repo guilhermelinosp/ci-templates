@@ -1,5 +1,8 @@
 name: helm-lint
 
+# Helm lint + template + kubeconform
+# Inputs: chart-dir (default: .), kube-version (default: 1.31.0)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,9 @@
 name: slsa
 
+# SLSA provenance generation
+# Env: COSIGN_EXPERIMENTAL=1 (auto-set)
+# Inputs: image, predicate-type (default: https://slsa.dev/provenance/v1)
+
 on:
   workflow_call:
     inputs:

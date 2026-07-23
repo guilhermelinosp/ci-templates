@@ -1,5 +1,9 @@
 name: labeler
 
+# Auto-label PRs by changed paths
+# Requires: .github/labeler.yml config
+# Secrets: GITHUB_TOKEN (auto)
+
 on:
   workflow_call:
 

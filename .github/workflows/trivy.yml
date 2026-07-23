@@ -1,5 +1,8 @@
 name: trivy
 
+# Container vulnerability scan with Trivy
+# Inputs: image, runner (default: ubuntu-latest), severity (default: HIGH,CRITICAL)
+
 on:
   workflow_call:
     inputs:

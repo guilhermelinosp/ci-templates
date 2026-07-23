@@ -1,5 +1,8 @@
 name: nuclei
 
+# ProjectDiscovery nuclei vulnerability scanner
+# Inputs: target-url, severity (default: medium,high,critical), rate-limit (default: 150)
+
 on:
   workflow_call:
     inputs:

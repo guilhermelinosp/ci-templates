@@ -1,5 +1,8 @@
 name: kustomize-validate
 
+# Kustomize build + kubeconform validation
+# Inputs: kustomize-dir (default: .), kube-version (default: 1.31.0)
+
 on:
   workflow_call:
     inputs:

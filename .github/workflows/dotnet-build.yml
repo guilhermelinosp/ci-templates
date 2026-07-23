@@ -1,5 +1,8 @@
 name: dotnet-build
 
+# .NET restore, build, test
+# Inputs: dotnet-version (default: 10.0.301), version, runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:

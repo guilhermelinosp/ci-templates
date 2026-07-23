@@ -1,5 +1,8 @@
 name: semgrep
 
+# Semgrep SAST static analysis
+# Inputs: config (default: p/default), severity (default: ERROR,WARNING)
+
 on:
   workflow_call:
     inputs:

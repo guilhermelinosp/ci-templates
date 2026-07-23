@@ -1,5 +1,8 @@
 name: merge-check
 
+# Validate PR merge strategy + conventional commits
+# Inputs: runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,8 @@
 name: conftest
 
+# OPA policy-as-code for Kubernetes configs
+# Inputs: policy-dir (default: ./policy), target-dir (default: .), policy-namespace (default: kubernetes)
+
 on:
   workflow_call:
     inputs:

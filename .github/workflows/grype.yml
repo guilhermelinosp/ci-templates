@@ -1,5 +1,8 @@
 name: grype
 
+# Vulnerability scanner with Grype
+# Inputs: image, severity (default: high,critical), fail-on (default: critical)
+
 on:
   workflow_call:
     inputs:

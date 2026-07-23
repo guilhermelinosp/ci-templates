@@ -1,5 +1,8 @@
 name: sbom
 
+# SBOM generation with Anchore Syft
+# Inputs: image, format (default: spdx-json)
+
 on:
   workflow_call:
     inputs:

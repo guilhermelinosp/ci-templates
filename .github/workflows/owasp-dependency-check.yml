@@ -1,5 +1,8 @@
 name: owasp-dependency-check
 
+# OWASP Dependency Check
+# Inputs: format (default: SARIF), fail-on (default: CVSS_SCORE_7)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,9 @@
 name: zap
 
+# OWASP ZAP DAST scanning
+# Secrets: GITHUB_TOKEN (auto)
+# Inputs: target-url, scan-type (default: baseline), fail-on (default: HIGH)
+
 on:
   workflow_call:
     inputs:

@@ -1,5 +1,9 @@
 name: push
 
+# Promote container images with skopeo
+# Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
+# Inputs: image, version, runner (default: ubuntu-latest)
+
 on:
   workflow_call:
     inputs:
