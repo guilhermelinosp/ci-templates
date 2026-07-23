@@ -102,7 +102,7 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Download plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: tfplan-${{ inputs.environment }}
           path: ${{ inputs.dir }}
