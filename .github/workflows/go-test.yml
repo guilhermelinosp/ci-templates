@@ -1,0 +1,37 @@
+name: go-test
+
+# Go test with race detector and shuffle
+# Inputs: go-version (default: stable), working-directory (default: .)
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: false
+        default: "stable"
+        type: string
+      working-directory:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Test
+        run: go test -count=1 -race -shuffle=on ./...
