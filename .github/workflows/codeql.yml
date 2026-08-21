@@ -1,16 +1,26 @@
 name: codeql
 
-# Reusable workflow — libs chamam via:
+# Reusable workflow — libs/templates chamam via:
 #   codeql:
 #     uses: guilhermelinosp/ci-templates/.github/workflows/codeql.yml@main
+#     with:
+#       languages: '[{"language":"actions","build-mode":"none"},{"language":"go","build-mode":"autobuild"}]'
 #
-# Matriz condicional por evento:
-#   - workflow_call (chamado por um lib): varre actions/go/javascript/csharp com autobuild
-#     (os libs tem codigo + go.mod, entao o build roda de verdade)
-#   - pull_request/push standalone (o proprio ci-templates, que SO tem workflows YAML):
-#     roda so 'actions' (CodeQL falha em go/js/csharp quando nao ha codigo no repo)
+# O caller passa o JSON de linguagens que FAZEM SENTIDO pro repo
+# (um template bash so tem "actions"; um lib Go tem "actions"+"go"; um lib
+# dotnet tem "actions"+"csharp"). Isso evita falha de autobuild em linguagem
+# inexistente no repo.
+#
+# Matriz condicional:
+#   - workflow_call: usa inputs.languages (default = actions/go/javascript/csharp)
+#   - pull_request/push standalone (o proprio ci-templates, so workflows YAML): so "actions"
 on:
   workflow_call:
+    inputs:
+      languages:
+        description: 'JSON array de objetos {"language","build-mode"}. Ex.: [{"language":"go","build-mode":"autobuild"}]'
+        required: false
+        default: '[{"language":"actions","build-mode":"none"},{"language":"go","build-mode":"autobuild"},{"language":"javascript","build-mode":"autobuild"},{"language":"csharp","build-mode":"autobuild"}]'
   pull_request:
     branches: [ "main" ]
 
@@ -32,12 +42,7 @@ jobs:
       matrix:
         include: >-
           ${{
-            github.event_name == 'workflow_call' && fromJson('[
-              {"language": "actions", "build-mode": "none"},
-              {"language": "go", "build-mode": "autobuild"},
-              {"language": "javascript", "build-mode": "autobuild"},
-              {"language": "csharp", "build-mode": "autobuild"}
-            ]') || fromJson('[
+            github.event_name == 'workflow_call' && fromJson(inputs.languages) || fromJson('[
               {"language": "actions", "build-mode": "none"}
             ]')
           }}
@@ -49,7 +54,7 @@ jobs:
         uses: actions/checkout@v7
 
       # Garante o toolchain correto (lê go.mod) para o autobuild do CodeQL
-      # compilar libs em Go 1.27+. So roda no matrix go com autobuild (ausente no standalone).
+      # compilar libs em Go 1.27+. So roda no matrix go com autobuild.
       - name: Set up Go
         if: matrix.language == 'go' && matrix.build-mode == 'autobuild'
         uses: actions/setup-go@v5
