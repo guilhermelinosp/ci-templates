@@ -8,8 +8,7 @@ name: codeql
 #   - workflow_call (chamado por um lib): varre actions/go/javascript/csharp com autobuild
 #     (os libs tem codigo + go.mod, entao o build roda de verdade)
 #   - pull_request/push standalone (o proprio ci-templates, que SO tem workflows YAML):
-#     roda todas as linguagens com build-mode: none (extrai fonte sem compilar; passa mesmo
-#     sem codigo go/js/csharp no repo)
+#     roda so 'actions' (CodeQL falha em go/js/csharp quando nao ha codigo no repo)
 on:
   workflow_call:
   pull_request:
@@ -39,10 +38,7 @@ jobs:
               {"language": "javascript", "build-mode": "autobuild"},
               {"language": "csharp", "build-mode": "autobuild"}
             ]') || fromJson('[
-              {"language": "actions", "build-mode": "none"},
-              {"language": "go", "build-mode": "none"},
-              {"language": "javascript", "build-mode": "none"},
-              {"language": "csharp", "build-mode": "none"}
+              {"language": "actions", "build-mode": "none"}
             ]')
           }}
 
