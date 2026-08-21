@@ -4,10 +4,12 @@ name: codeql
 #   codeql:
 #     uses: guilhermelinosp/ci-templates/.github/workflows/codeql.yml@main
 #
-# Matriz condicional:
-#   - workflow_call (chamado por um lib): varre actions/go/javascript/csharp
-#   - pull_request/push standalone (o próprio ci-templates, que só tem workflows):
-#     roda só `actions` (senão o autobuild de go/js/csharp falha por falta de código)
+# Matriz condicional por evento:
+#   - workflow_call (chamado por um lib): varre actions/go/javascript/csharp com autobuild
+#     (os libs tem codigo + go.mod, entao o build roda de verdade)
+#   - pull_request/push standalone (o proprio ci-templates, que SO tem workflows YAML):
+#     roda todas as linguagens com build-mode: none (extrai fonte sem compilar; passa mesmo
+#     sem codigo go/js/csharp no repo)
 on:
   workflow_call:
   pull_request:
@@ -37,18 +39,23 @@ jobs:
               {"language": "javascript", "build-mode": "autobuild"},
               {"language": "csharp", "build-mode": "autobuild"}
             ]') || fromJson('[
-              {"language": "actions", "build-mode": "none"}
+              {"language": "actions", "build-mode": "none"},
+              {"language": "go", "build-mode": "none"},
+              {"language": "javascript", "build-mode": "none"},
+              {"language": "csharp", "build-mode": "none"}
             ]')
           }}
+
+    name: analyze (${{ matrix.language }})
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       # Garante o toolchain correto (lê go.mod) para o autobuild do CodeQL
-      # compilar libs em Go 1.27+. Só roda no matrix go (ausente no standalone).
+      # compilar libs em Go 1.27+. So roda no matrix go com autobuild (ausente no standalone).
       - name: Set up Go
-        if: matrix.language == 'go'
+        if: matrix.language == 'go' && matrix.build-mode == 'autobuild'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
