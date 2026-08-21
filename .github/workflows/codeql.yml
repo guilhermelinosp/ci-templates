@@ -3,7 +3,11 @@ name: codeql
 # Reusable workflow — libs chamam via:
 #   codeql:
 #     uses: guilhermelinosp/ci-templates/.github/workflows/codeql.yml@main
-# Também roda em todo PR para a branch main (standalone).
+#
+# Matriz condicional:
+#   - workflow_call (chamado por um lib): varre actions/go/javascript/csharp
+#   - pull_request/push standalone (o próprio ci-templates, que só tem workflows):
+#     roda só `actions` (senão o autobuild de go/js/csharp falha por falta de código)
 on:
   workflow_call:
   pull_request:
@@ -25,22 +29,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - language: actions
-            build-mode: none
-          - language: go
-            build-mode: autobuild
-          - language: javascript
-            build-mode: autobuild
-          - language: csharp
-            build-mode: autobuild
+        include: >-
+          ${{
+            github.event_name == 'workflow_call' && fromJson('[
+              {"language": "actions", "build-mode": "none"},
+              {"language": "go", "build-mode": "autobuild"},
+              {"language": "javascript", "build-mode": "autobuild"},
+              {"language": "csharp", "build-mode": "autobuild"}
+            ]') || fromJson('[
+              {"language": "actions", "build-mode": "none"}
+            ]')
+          }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       # Garante o toolchain correto (lê go.mod) para o autobuild do CodeQL
-      # compilar libs em Go 1.27+ — sem isso, falha em "unable to build".
+      # compilar libs em Go 1.27+. Só roda no matrix go (ausente no standalone).
       - name: Set up Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v5
