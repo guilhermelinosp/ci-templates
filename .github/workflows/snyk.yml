@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Snyk test
-        uses: snyk/actions/${{ inputs.project-type }}@v0.4
+        uses: snyk/actions/${{ inputs.project-type }}@v1
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -42,7 +42,7 @@ jobs:
 
       - name: Snyk monitor
         if: ${{ inputs.monitor }}
-        uses: snyk/actions/${{ inputs.project-type }}@v0.4
+        uses: snyk/actions/${{ inputs.project-type }}@v1
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
