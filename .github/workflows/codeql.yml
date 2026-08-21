@@ -57,7 +57,7 @@ jobs:
       # compilar libs em Go 1.27+. So roda no matrix go com autobuild.
       - name: Set up Go
         if: matrix.language == 'go' && matrix.build-mode == 'autobuild'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
