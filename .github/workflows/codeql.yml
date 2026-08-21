@@ -1,7 +1,22 @@
 name: codeql
 
+# Reusable workflow — libs chamam via:
+#   codeql:
+#     uses: guilhermelinosp/ci-templates/.github/workflows/codeql.yml@main
+#
+# Matriz condicional por evento:
+#   - workflow_call (chamado por um lib): varre actions/go/javascript/csharp com autobuild
+#     (os libs tem codigo + go.mod, entao o build roda de verdade)
+#   - pull_request/push standalone (o proprio ci-templates, que SO tem workflows YAML):
+#     roda so 'actions' (CodeQL falha em go/js/csharp quando nao ha codigo no repo)
 on:
   workflow_call:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
@@ -11,24 +26,55 @@ permissions:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        language:
-          - go
-          - javascript
-          - csharp
+        include: >-
+          ${{
+            github.event_name == 'workflow_call' && fromJson('[
+              {"language": "actions", "build-mode": "none"},
+              {"language": "go", "build-mode": "autobuild"},
+              {"language": "javascript", "build-mode": "autobuild"},
+              {"language": "csharp", "build-mode": "autobuild"}
+            ]') || fromJson('[
+              {"language": "actions", "build-mode": "none"}
+            ]')
+          }}
+
+    name: analyze (${{ matrix.language }})
+
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # Garante o toolchain correto (lê go.mod) para o autobuild do CodeQL
+      # compilar libs em Go 1.27+. So roda no matrix go com autobuild (ausente no standalone).
+      - name: Set up Go
+        if: matrix.language == 'go' && matrix.build-mode == 'autobuild'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
           queries: +security-and-quality
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      # Build manual (caso alguma linguagem use build-mode: manual)
+      - name: Run manual build steps
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          echo 'If you are using a "manual" build mode for one or more of the' \
+            'languages you are analyzing, replace this with the commands to build' \
+            'your code, for example:'
+          echo '  make bootstrap'
+          echo '  make release'
+          exit 1
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
