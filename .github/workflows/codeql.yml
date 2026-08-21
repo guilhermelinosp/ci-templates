@@ -3,15 +3,11 @@ name: codeql
 # Reusable workflow — libs chamam via:
 #   codeql:
 #     uses: guilhermelinosp/ci-templates/.github/workflows/codeql.yml@main
-# Também dispara sozinho (push/PR/schedule) caso o repo queira.
+# Também roda em todo PR para a branch main (standalone).
 on:
   workflow_call:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  schedule:
-    - cron: '16 16 * * 3'
 
 concurrency:
   group: codeql-${{ github.workflow }}-${{ github.ref }}
