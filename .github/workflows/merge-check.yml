@@ -54,6 +54,10 @@ jobs:
 
           ERRORS=0
           while IFS= read -r COMMIT; do
+            if echo "$COMMIT" | grep -qE '^Initial plan$'; then
+              continue
+            fi
+
             if ! echo "$COMMIT" | grep -qE '^(feat|fix|docs|style|ref|refactor|test|chore|ci|perf|build|revert)(\([a-zA-Z0-9_-]+\))?:\s.+'; then
               if echo "$COMMIT" | grep -q '^Merge'; then
                 continue
