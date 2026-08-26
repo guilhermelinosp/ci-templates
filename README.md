@@ -35,6 +35,10 @@ jobs:
 | Workflow | Description |
 |---|---|
 | `go-build.yml` | Go tidy, vet, lint (golangci-lint), build, test with cache |
+| `go-quality.yml` | All-in-one PR gate: module integrity, vet, extra checks, race tests + coverage artifact, canonical-config lint, build, smoke |
+| `govulncheck.yml` | stdlib vulnerability scan with call-graph reachability |
+| `goreleaser.yml` | Publish cross-platform binaries onto the release created by `release.yml` |
+| `codeql.yml` | CodeQL security & quality analysis for PRs (Go + Actions default matrix) |
 
 ### Node.js
 
@@ -169,6 +173,24 @@ jobs:
 |---|---|
 | `release.yml` | Semver bump, git tag, GitHub release, mutable `latest` tag |
 | `pipeline.yml` | Push-to-main pipeline: release → build → push |
+
+#### Signed release tags
+
+When the repo (or caller) provides secrets `GPG_PRIVATE_KEY` + `GPG_PASSPHRASE`,
+`release.yml` imports the key and creates **signed, annotated** tags
+(`git tag -s`) for both the version tag and `latest`. Without them, behavior is
+unchanged (lightweight, unsigned tags) — signing is opt-in per repo.
+
+- Public key for verification: [`signing-key.asc`](signing-key.asc)
+  (`gpg --import signing-key.asc && git verify-tag v1.2.3`)
+- Enrolled repos: hellnet-lib-cache, hellnet-lib-kafka, hellnet-lib-telemetry,
+  hellnet-lib-environments, golang-lib-template
+
+> ⚠️ The account is personal (no org-level secrets), so each repo carries its
+> own copy of the secret. Use
+> [`scripts/sync-gpg-release-secret.sh`](scripts/sync-gpg-release-secret.sh)
+> to set/rotate it across all repos in one command. Keep a backup of the
+> private key outside GitHub — Actions secrets are write-only.
 
 ### AI
 

@@ -1,0 +1,57 @@
+name: codeql
+
+# CodeQL security & quality analysis for every PR to main.
+# Default matrix mirrors org templates: Go (autobuild) + Actions workflows.
+# Inputs: languages (JSON array of {language, build-mode}), queries,
+#         runner. Caller must allow security-events: write.
+
+on:
+  workflow_call:
+    inputs:
+      languages:
+        required: false
+        default: '[{"language":"go","build-mode":"autobuild"},{"language":"actions","build-mode":"none"}]'
+        type: string
+      queries:
+        required: false
+        default: +security-and-quality
+        type: string
+      runner:
+        required: false
+        default: ubuntu-latest
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: codeql / analyze (${{ matrix.language }})
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.languages) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: ${{ inputs.queries }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4

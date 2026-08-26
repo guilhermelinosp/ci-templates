@@ -1,0 +1,46 @@
+name: govulncheck
+
+# Supply-chain guard: stdlib-native vulnerability analysis with call-graph
+# reachability (only flags reachable symbols, unlike static manifests scans).
+# Inputs: go-version (default: stable), go-version-file (mutually exclusive
+#         preference: file wins when provided), working-directory.
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: false
+        default: ""
+        type: string
+      go-version-file:
+        required: false
+        default: go.mod
+        type: string
+      working-directory:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+          cache: true
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
