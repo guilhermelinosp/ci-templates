@@ -26,10 +26,6 @@ concurrency:
 permissions:
   contents: write
 
-env:
-  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
 jobs:
   semver:
     runs-on: ${{ inputs.runner }}
@@ -72,6 +68,9 @@ jobs:
 
       - name: Import GPG key for tag signing
         if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           set -euo pipefail
           mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
@@ -92,6 +91,8 @@ jobs:
           git config gpg.program "$WRAPPER"
 
       - name: Create tag
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           TAG="${{ steps.semver.outputs.tag }}"
           if [ -z "$TAG" ] || [ "$TAG" = "v" ]; then
@@ -121,6 +122,7 @@ jobs:
       - name: Update latest tag
         env:
           GH_TOKEN: ${{ github.token }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           # latest is an intentionally mutable tag — force push is correct
           if [ -n "${GPG_PRIVATE_KEY:-}" ]; then
