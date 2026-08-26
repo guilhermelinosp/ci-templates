@@ -43,11 +43,15 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Fetch canonical golangci config
+        run: curl -fsSL "https://raw.githubusercontent.com/guilhermelinosp/ci-templates/main/.golangci.yml" -o .golangci.ci.yml
+
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ inputs.golangci-version }}
           working-directory: ${{ inputs.working-directory }}
+          args: --config .golangci.ci.yml
 
       - name: Build
         run: go build ./...
