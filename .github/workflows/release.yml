@@ -2,6 +2,11 @@ name: release
 
 # Semver bump + git tag + GitHub release
 # Inputs: runner (default: ubuntu-latest)
+#
+# Optional signed tags: set repo/org secrets GPG_PRIVATE_KEY (armored private
+# key) + GPG_PASSPHRASE. When present, release tags are created as signed,
+# annotated tags (git tag -s). When absent, behavior is unchanged (lightweight
+# tags).
 
 on:
   workflow_call:
@@ -20,6 +25,10 @@ concurrency:
 
 permissions:
   contents: write
+
+env:
+  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
 jobs:
   semver:
@@ -61,6 +70,27 @@ jobs:
             || p=$((p+1))
           echo "tag=v${M}.${m}.${p}" >> $GITHUB_OUTPUT
 
+      - name: Import GPG key for tag signing
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent 2>/dev/null || true
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --import
+          KEY_ID=$(gpg --list-secret-keys --with-colons --keyid-format long 2>/dev/null | awk -F: '/^sec:/{print $5; exit}')
+          UID_LINE=$(gpg --list-secret-keys --with-colons 2>/dev/null | awk -F: '/^uid:/{print $10; exit}')
+          NAME=$(echo "$UID_LINE" | sed 's/<.*//;s/[[:space:]]*$//')
+          EMAIL=$(echo "$UID_LINE" | sed -n 's/.*<\(.*\)>.*/\1/p')
+          git config user.signingkey "$KEY_ID"
+          git config user.name "$NAME"
+          git config user.email "$EMAIL"
+          git config tag.gpgsign true
+          WRAPPER="$RUNNER_TEMP/gpg-wrapper.sh"
+          printf '#!/bin/sh\nexec gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" "$@"\n' > "$WRAPPER"
+          chmod +x "$WRAPPER"
+          git config gpg.program "$WRAPPER"
+
       - name: Create tag
         run: |
           TAG="${{ steps.semver.outputs.tag }}"
@@ -72,7 +102,11 @@ jobs:
             echo "Tag $TAG already exists — skipping"
             exit 0
           fi
-          git tag "$TAG"
+          if [ -n "${GPG_PRIVATE_KEY:-}" ]; then
+            git tag -s "$TAG" -m "Release $TAG"
+          else
+            git tag "$TAG"
+          fi
           git push origin "$TAG"
 
       - name: Create release
@@ -89,4 +123,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # latest is an intentionally mutable tag — force push is correct
-          git tag -f latest && git push origin latest --force
+          if [ -n "${GPG_PRIVATE_KEY:-}" ]; then
+            git tag -sf latest -m "Latest release"
+          else
+            git tag -f latest
+          fi
+          git push origin latest --force
