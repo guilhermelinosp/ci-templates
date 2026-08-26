@@ -91,6 +91,9 @@ jobs:
           chmod +x "$WRAPPER"
           git config gpg.program "$WRAPPER"
       - name: Create tag
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           TAG="${{ steps.semver.outputs.tag }}"
           if [ -z "$TAG" ] || [ "$TAG" = "v" ]; then
@@ -118,6 +121,8 @@ jobs:
       - name: Update latest tag
         env:
           GH_TOKEN: ${{ github.token }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           # latest is an intentionally mutable tag — force push is correct
           if [ -n "${GPG_PRIVATE_KEY:-}" ]; then
