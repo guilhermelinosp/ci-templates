@@ -1,3 +1,5 @@
+name: codeql
+
 # CodeQL security & quality analysis for every PR to main.
 # Fixed matrix mirrors org Go templates: Go (autobuild) + Actions workflows.
 # Caller must allow security-events: write.
