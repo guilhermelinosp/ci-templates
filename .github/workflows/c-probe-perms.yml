@@ -1,0 +1,16 @@
+name: c-probe-perms
+
+on:
+  workflow_call:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello
+        run: echo hi
