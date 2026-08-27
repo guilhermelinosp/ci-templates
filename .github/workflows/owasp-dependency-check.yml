@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@v1.1.0
+        uses: dependency-check/Dependency-Check_Action@1.1.0
         with:
           format: ${{ inputs.format }}
           fail_on_cvss: ${{ inputs.fail-on }}

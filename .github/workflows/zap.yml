@@ -29,8 +29,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: OWASP ZAP ${{ inputs.scan-type }}
-        uses: zaproxy/action-${{ inputs.scan-type }}@v0.14
+      - name: OWASP ZAP baseline
+        if: ${{ inputs.scan-type == 'baseline' }}
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ inputs.target-url }}
+          fail_action: true
+          allow_issue_writing: false
+          issue_title: "ZAP Scan Report"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: OWASP ZAP full
+        if: ${{ inputs.scan-type == 'full' }}
+        uses: zaproxy/action-full-scan@v0.13.0
+        with:
+          target: ${{ inputs.target-url }}
+          fail_action: true
+          allow_issue_writing: false
+          issue_title: "ZAP Scan Report"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: OWASP ZAP api
+        if: ${{ inputs.scan-type == 'api' }}
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
           target: ${{ inputs.target-url }}
           fail_action: true
