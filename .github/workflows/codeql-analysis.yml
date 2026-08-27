@@ -1,7 +1,8 @@
 name: codeql
 
 # CodeQL security & quality analysis for every PR to main.
-# Fixed matrix mirrors org Go templates: Go (autobuild) + Actions workflows.
+# Sequential languages (Go autobuild + Actions none) instead of matrix:
+# strategy blocks under workflow_call have proven brittle across callers.
 # Caller must allow security-events: write.
 
 on:
@@ -17,31 +18,32 @@ jobs:
     name: analyze
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: go
-            build-mode: autobuild
-          - language: actions
-            build-mode: none
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       - name: Set up Go
-        if: matrix.language == 'go'
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
 
-      - name: Initialize CodeQL
+      - name: Initialize CodeQL (go)
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          languages: go
+          build-mode: autobuild
           queries: +security-and-quality
 
-      - name: Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis (go)
+        uses: github/codeql-action/analyze@v4
+
+      - name: Initialize CodeQL (actions)
+        uses: github/codeql-action/init@v4
+        with:
+          languages: actions
+          build-mode: none
+          queries: +security-and-quality
+
+      - name: Perform CodeQL Analysis (actions)
         uses: github/codeql-action/analyze@v4
