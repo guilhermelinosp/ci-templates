@@ -1,7 +1,8 @@
 name: golangci
 
 # Go lint with golangci-lint
-# Inputs: go-version (default: stable), golangci-version (default: latest), working-directory (default: .)
+# Inputs: go-version (default: stable) XOR go-version-file (file wins when set),
+#         golangci-version (default: latest), working-directory (default: .)
 
 on:
   workflow_call:
@@ -9,6 +10,10 @@ on:
       go-version:
         required: false
         default: "stable"
+        type: string
+      go-version-file:
+        required: false
+        default: ""
         type: string
       golangci-version:
         required: false
@@ -31,10 +36,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Go
+      - name: Setup Go (from version)
+        if: inputs.go-version-file == ''
         uses: actions/setup-go@v7
         with:
           go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Setup Go (from version file)
+        if: inputs.go-version-file != ''
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
           cache: true
 
       - name: Lint
