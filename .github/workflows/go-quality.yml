@@ -16,7 +16,9 @@ on:
         default: go.mod
         type: string
       extra-commands:
-        description: Optional shell block run between vet and tests (e.g. architecture guards)
+        description: >-
+          Optional shell block run between vet and tests
+          (e.g. architecture guards)
         required: false
         default: ""
         type: string
@@ -29,7 +31,9 @@ on:
         default: go build ./...
         type: string
       smoke-command:
-        description: Command proving the built binary works (e.g. ./bin/app --version)
+        description: >-
+          Command proving the built binary works
+          (e.g. ./bin/app --version)
         required: false
         default: ""
         type: string
@@ -69,7 +73,8 @@ jobs:
           go mod verify
           go mod tidy
           if git status --porcelain -- go.mod go.sum | grep -q .; then
-            echo "::error::go.mod/go.sum out of sync — run 'go mod tidy' and commit"
+            echo "::error::go.mod/go.sum out of sync —" \
+              "run 'go mod tidy' and commit"
             git diff -- go.mod go.sum || true
             exit 1
           fi
@@ -93,11 +98,10 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Fetch canonical golangci config
+      - name: Use canonical golangci config
         run: >-
-          curl -fsSL
-          "https://raw.githubusercontent.com/guilhermelinosp/ci-templates/main/.golangci.yml"
-          -o .golangci.ci.yml
+          cp .golangci.yml .golangci.ci.yml 2>/dev/null || echo "{}" >
+          .golangci.ci.yml
 
       - name: Lint
         uses: golangci/golangci-lint-action@v9

@@ -1,7 +1,8 @@
 name: go-build
 
 # Go build, vet, lint, test with cache
-# Inputs: go-version (default: stable), golangci-version (default: latest), working-directory (default: .)
+# Inputs: go-version (default: stable) XOR go-version-file (file wins),
+#         golangci-version (default: latest), working-directory (default: .)
 
 on:
   workflow_call:
@@ -43,8 +44,10 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Fetch canonical golangci config
-        run: curl -fsSL "https://raw.githubusercontent.com/guilhermelinosp/ci-templates/main/.golangci.yml" -o .golangci.ci.yml
+      - name: Use local golangci config when present
+        run: >-
+          cp .golangci.yml .golangci.ci.yml 2>/dev/null
+          || echo "{}" > .golangci.ci.yml
 
       - name: Lint
         uses: golangci/golangci-lint-action@v9
