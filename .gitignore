@@ -1,0 +1,3 @@
+
+# Neutralize user-global ignores so workflow files stay tracked.
+!.github/

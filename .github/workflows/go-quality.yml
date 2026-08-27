@@ -1,0 +1,109 @@
+name: go-quality
+
+# All-in-one Go PR quality gate: module integrity, vet, race tests,
+# canonical-config lint, build and optional smoke command.
+# Inputs: go-version-file (default: go.mod), extra-commands (multiline shell),
+#         coverage-artifact (default: true), build-command, smoke-command,
+#         golangci-version (default: latest), runner (default: ubuntu-latest)
+#
+# Granular alternatives remain available: go-test, golangci, go-build.
+
+on:
+  workflow_call:
+    inputs:
+      go-version-file:
+        required: false
+        default: go.mod
+        type: string
+      extra-commands:
+        description: Optional shell block run between vet and tests (e.g. architecture guards)
+        required: false
+        default: ""
+        type: string
+      coverage-artifact:
+        required: false
+        default: true
+        type: boolean
+      build-command:
+        required: false
+        default: go build ./...
+        type: string
+      smoke-command:
+        description: Command proving the built binary works (e.g. ./bin/app --version)
+        required: false
+        default: ""
+        type: string
+      golangci-version:
+        required: false
+        default: latest
+        type: string
+      runner:
+        required: false
+        default: ubuntu-latest
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: go-quality / check
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+          cache: true
+
+      - name: Verify module integrity
+        run: |
+          go mod verify
+          go mod tidy && git diff --exit-code go.mod go.sum || {
+            echo "::error::go.mod/go.sum out of sync — run 'go mod tidy' and commit"
+            exit 1
+          }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Extra repository-specific checks
+        if: inputs.extra-commands != ''
+        run: ${{ inputs.extra-commands }}
+
+      - name: Test with coverage
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Upload coverage artifact
+        if: inputs.coverage-artifact == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Fetch canonical golangci config
+        run: >-
+          curl -fsSL
+          "https://raw.githubusercontent.com/guilhermelinosp/ci-templates/main/.golangci.yml"
+          -o .golangci.ci.yml
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ inputs.golangci-version }}
+          args: --config .golangci.ci.yml
+
+      - name: Build
+        run: ${{ inputs.build-command }}
+
+      - name: Smoke binary
+        if: inputs.smoke-command != ''
+        run: ${{ inputs.smoke-command }}
