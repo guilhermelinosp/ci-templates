@@ -1,5 +1,10 @@
 name: nuget-pipeline
 
+# Orchestration consumed by .NET repos: build → tag → publish → release.
+# NOTE: this repository cannot import its own reusable workflows
+# (self-referencing `uses:` is rejected by GitHub), so each stage inlines the
+# steps of nuget-build/tag/publish/release.yml. Keep them in sync.
+
 on:
   workflow_call:
 
@@ -9,18 +14,110 @@ permissions:
 
 jobs:
   build:
-    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-build.yml@main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release
+
+      - name: Pack
+        run: >-
+          dotnet pack --no-build --configuration Release
+          -o ./artifacts
 
   tag:
     needs: [build]
-    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-tag.yml@main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Semver bump and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LAST=$(git tag --sort=-version:refname | head -1 || true)
+          if [ -z "$LAST" ]; then LAST=v1.0.0; fi
+          IFS=. read -r MAJOR MINOR PATCH <<< "${LAST#v}"
+          SUBJECTS=$(git log --format="%s" "$LAST..HEAD")
+          if echo "$SUBJECTS" | grep -q "BREAKING CHANGE\|!:"; then
+            MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0
+          elif echo "$SUBJECTS" | grep -q "^feat"; then
+            MINOR=$((MINOR+1)); PATCH=0
+          else
+            PATCH=$((PATCH+1))
+          fi
+          TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          git config user.name "github-actions[bot]"
+          BOT="41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "$BOT"
+          git tag "$TAG" && git push origin "$TAG"
 
   publish:
     needs: [tag]
-    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-publish.yml@main
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Pack (pinned version)
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          dotnet pack --configuration Release \
+            -p:PackageVersion="$VERSION" -o ./artifacts
+
+      - name: Publish to GitHub Packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          SOURCE="https://nuget.pkg.github.com/$OWNER/index.json"
+          dotnet nuget add source github "$SOURCE" \
+            --username "${{ github.actor }}" \
+            --password "$GH_TOKEN" \
+            --store-password-in-clear-text || true
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source github --skip-duplicate
 
   release:
-    needs: [tag, publish]
-    uses: guilhermelinosp/ci-templates/.github/workflows/nuget-release.yml@main
-    secrets: inherit
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh release create "$GITHUB_REF_NAME" --generate-notes
