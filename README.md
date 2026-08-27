@@ -38,7 +38,7 @@ jobs:
 | `go-quality.yml` | All-in-one PR gate: module integrity, vet, extra checks, race tests + coverage artifact, canonical-config lint, build, smoke |
 | `govulncheck.yml` | stdlib vulnerability scan with call-graph reachability |
 | `goreleaser.yml` | Publish cross-platform binaries onto the release created by `release.yml` |
-| `codeql.yml` | CodeQL security & quality analysis for PRs (Go + Actions default matrix) |
+| _CodeQL_ | kept **per-repo** (inline) — reusable variant triggers GitHub validation quirks across callers; see golang-cli/golang-api templates for the canonical copy |
 
 ### Node.js
 
