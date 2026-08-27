@@ -107,3 +107,21 @@ jobs:
       - name: Smoke binary
         if: inputs.smoke-command != ''
         run: ${{ inputs.smoke-command }}
+
+  dependency-review:
+    # Supply-chain check for changed dependencies. Runs on pull_request
+    # events only (requires base/head refs); auto-skips otherwise.
+    if: github.event_name == 'pull_request'
+    name: go-quality / dependency-review
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
