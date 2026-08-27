@@ -99,7 +99,7 @@ jobs:
 
 | Workflow | Description |
 |---|---|
-| `codeql.yml` | CodeQL analysis (Go/JS/C# matrix) |
+| `codeql.yml` _(per-repo)_ | CodeQL analysis — kept inline per repo (reusable variant has unresolved validation quirk; canonical copy lives in golang-cli/golang-api templates) |
 | `semgrep.yml` | Semgrep SAST (configurable rules) |
 | `gosec.yml` | Go security static analysis |
 | `sonarcloud.yml` | SonarCloud analysis with PR decoration |

@@ -63,12 +63,16 @@ jobs:
           cache: true
 
       - name: Verify module integrity
+        # porcelain (not git diff) because stdlib-only modules legitimately
+        # have no go.sum; git diff would abort on the missing pathspec.
         run: |
           go mod verify
-          go mod tidy && git diff --exit-code go.mod go.sum || {
+          go mod tidy
+          if git status --porcelain -- go.mod go.sum | grep -q .; then
             echo "::error::go.mod/go.sum out of sync — run 'go mod tidy' and commit"
+            git diff -- go.mod go.sum || true
             exit 1
-          }
+          fi
 
       - name: Vet
         run: go vet ./...
