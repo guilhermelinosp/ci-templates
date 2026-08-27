@@ -1,6 +1,6 @@
 name: tfsec
 
-# Terraform security scanner
+# Terraform/IaC security scanner (migrated from tfsec to Trivy `trivy config`)
 # Inputs: dir (default: .), config-file, soft-fail (default: false)
 
 on:
@@ -29,14 +29,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: tfsec
-        uses: aquasecurity/tfsec-action@v1.0.4
+      - name: Trivy IaC scan
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          working_directory: ${{ inputs.dir }}
-          config_file: ${{ inputs.config-file }}
-          soft_fail: ${{ inputs.soft-fail }}
-          sarif: true
-          sarif_file: tfsec.sarif
+          command: config
+          scan-type: fs
+          input: ${{ inputs.dir }}
+          format: sarif
+          output: tfsec.sarif
+          exit-code: ${{ inputs.soft-fail && '0' || '1' }}
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          trivy-config: ${{ inputs.config-file }}
 
       - name: Upload SARIF
         if: always()
