@@ -1,0 +1,63 @@
+name: goreleaser-publish
+
+# Upload cross-platform binaries + checksums produced by GoReleaser onto the
+# latest semver tag's GitHub Release (created by the org `release` workflow).
+# Assumes: release.yml already tagged HEAD and opened the GH Release.
+# Consumes GITHUB_TOKEN implicitly (no secrets plumbing needed by callers).
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: false
+        default: "."
+        type: string
+      go-version-file:
+        required: false
+        default: ""
+        type: string
+      args:
+        required: false
+        default: release --clean
+        type: string
+      pre-release-commands:
+        description: Optional shell block before GoReleaser runs (e.g. architecture guards)
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        if: inputs.go-version-file != ''
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+          cache: true
+
+      - name: Fetch tag created by release job
+        run: git fetch --tags --force && git checkout "$(git describe --tags --abbrev=0)"
+
+      - name: Pre-release repository checks
+        if: inputs.pre-release-commands != ''
+        run: ${{ inputs.pre-release-commands }}
+
+      - name: Publish binaries via GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: ${{ inputs.args }}
+          workdir: ${{ inputs.working-directory }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
