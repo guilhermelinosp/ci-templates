@@ -71,11 +71,12 @@ jobs:
         run: |
           rm -rf /tmp/artifacts && mkdir -p /tmp/artifacts
           cd dist
-          # checksums for every real artifact (goreleaser's internal metadata.json excluded)
-          find . -type f ! -name 'metadata.json' -exec sha256sum {} + > /tmp/artifacts/checksums.txt
+          # checksums for every real artifact (goreleaser's internal metadata.json,
+          # config.yaml and artifacts.json are excluded — they are not publishable artifacts)
+          find . -type f ! -name 'metadata.json' ! -name 'config.yaml' ! -name 'artifacts.json' -exec sha256sum {} + > /tmp/artifacts/checksums.txt
           # goreleaser build emits each binary under dist/<target>/<binary> with identical
           # basenames; give each a unique name so gh release upload does not collide.
-          find . -type f ! -name 'metadata.json' | while read -r f; do
+          find . -type f ! -name 'metadata.json' ! -name 'config.yaml' ! -name 'artifacts.json' | while read -r f; do
             name="$(echo "$f" | sed 's#^\./##; s#/#_#g')"
             cp "$f" "/tmp/artifacts/$name"
           done
