@@ -50,7 +50,7 @@ jobs:
           cache: true
 
       - name: Fetch and checkout the release tag
-        run: git fetch --tags --force && git checkout "$(git describe --tags --abbrev=0)"
+        run: git fetch --tags --force && git checkout "$(git describe --tags --abbrev=0 --exclude 'latest')"
 
       - name: Pre-release repository checks
         if: inputs.pre-release-commands != ''
@@ -75,6 +75,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          TAG="$(git describe --tags --abbrev=0)"
+          TAG="$(git describe --tags --abbrev=0 --exclude 'latest')"
           FILES=$(find dist -type f ! -name 'metadata.json')
           gh release upload "$TAG" $FILES --clobber
