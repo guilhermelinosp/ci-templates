@@ -68,7 +68,7 @@ jobs:
 
       - name: Generate checksums
         working-directory: ${{ inputs.working-directory }}
-        run: cd dist && sha256sum * > checksums.txt
+        run: cd dist && find . -type f ! -name 'metadata.json' -exec sha256sum {} + > checksums.txt
 
       - name: Upload artifacts to the existing release
         working-directory: ${{ inputs.working-directory }}
@@ -76,5 +76,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           TAG="$(git describe --tags --abbrev=0)"
-          FILES=$(find dist -type f)
+          FILES=$(find dist -type f ! -name 'metadata.json')
           gh release upload "$TAG" $FILES --clobber
