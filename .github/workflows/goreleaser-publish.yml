@@ -1,9 +1,12 @@
 name: goreleaser-publish
 
-# Upload cross-platform binaries + checksums produced by GoReleaser onto the
-# latest semver tag's GitHub Release (created by the org `release` workflow).
-# Assumes: release.yml already tagged HEAD and opened the GH Release.
-# Consumes GITHUB_TOKEN implicitly (no secrets plumbing needed by callers).
+# Build cross-platform binaries with GoReleaser and UPLOAD them (plus a
+# checksums file) onto the EXISTING GitHub Release that the shared `release`
+# workflow already created for this tag. GoReleaser does NOT manage the
+# GitHub release here, so there is no "release already exists" conflict.
+#
+# The org `release` reusable workflow owns the GitHub Release + tag.
+# This job only builds artifacts and attaches them to that release.
 
 on:
   workflow_call:
@@ -17,11 +20,12 @@ on:
         default: ""
         type: string
       args:
+        description: GoReleaser args (defaults to build-only; the release is owned by the `release` workflow)
         required: false
-        default: release --clean
+        default: build --clean
         type: string
       pre-release-commands:
-        description: Optional shell block before GoReleaser runs (e.g. architecture guards)
+        description: Optional shell block executed in the repo before GoReleaser runs (e.g. architecture guards)
         required: false
         default: ""
         type: string
@@ -45,14 +49,14 @@ jobs:
           go-version-file: ${{ inputs.go-version-file }}
           cache: true
 
-      - name: Fetch tag created by release job
+      - name: Fetch and checkout the release tag
         run: git fetch --tags --force && git checkout "$(git describe --tags --abbrev=0)"
 
       - name: Pre-release repository checks
         if: inputs.pre-release-commands != ''
         run: ${{ inputs.pre-release-commands }}
 
-      - name: Publish binaries via GoReleaser
+      - name: Build binaries with GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -61,3 +65,16 @@ jobs:
           workdir: ${{ inputs.working-directory }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Generate checksums
+        working-directory: ${{ inputs.working-directory }}
+        run: cd dist && sha256sum * > checksums.txt
+
+      - name: Upload artifacts to the existing release
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$(git describe --tags --abbrev=0)"
+          FILES=$(find dist -type f)
+          gh release upload "$TAG" $FILES --clobber
