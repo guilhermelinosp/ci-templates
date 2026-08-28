@@ -1,8 +1,14 @@
 name: codeql
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches: ["main"]
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * 1'
 
 permissions:
   actions: read
@@ -11,15 +17,9 @@ permissions:
 
 jobs:
   analyze:
-    name: analyze (${{ matrix.language }})
+    name: analyze (actions)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: actions
-            build-mode: none
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -27,8 +27,8 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          languages: actions
+          build-mode: none
           queries: +security-and-quality
 
       - name: Perform CodeQL Analysis
