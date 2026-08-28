@@ -1,0 +1,147 @@
+name: lib-quality
+
+# Canonical CI gate for Go LIBRARIES.
+# Libraries are consumed, never deployed — so this workflow validates
+# (module integrity, vet, race tests, coverage, canonical lint, govulncheck,
+# build) but NEVER publishes or releases.
+#
+# How library repos consume it:
+#
+#   # .github/workflows/pipeline.yml  (push to main — quality gate only)
+#   on:
+#     push:
+#       branches: [main]
+#   permissions:
+#     contents: read
+#   jobs:
+#     quality:
+#       uses: guilhermelinosp/templates/.github/workflows/lib-quality.yml@main
+#
+#   # .github/workflows/pr-check.yml  (pull_request)
+#   on:
+#     pull_request:
+#       branches: [main]
+#   permissions:
+#     contents: read
+#     pull-requests: write   # needed by the dependency-review job
+#   jobs:
+#     quality:
+#       uses: guilhermelinosp/templates/.github/workflows/lib-quality.yml@main
+
+on:
+  workflow_call:
+    inputs:
+      go-version-file:
+        required: false
+        default: go.mod
+        type: string
+      extra-commands:
+        description: >-
+          Optional shell block run between vet and tests
+          (e.g. architecture guards)
+        required: false
+        default: ""
+        type: string
+      coverage-artifact:
+        required: false
+        default: true
+        type: boolean
+      build-command:
+        required: false
+        default: go build ./...
+        type: string
+      golangci-version:
+        required: false
+        default: latest
+        type: string
+      runner:
+        required: false
+        default: ubuntu-latest
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: lib-quality / check
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+          cache: true
+
+      - name: Verify module integrity
+        # porcelain (not git diff) because stdlib-only modules legitimately
+        # have no go.sum; git diff would abort on the missing pathspec.
+        run: |
+          go mod verify
+          go mod tidy
+          if git status --porcelain -- go.mod go.sum | grep -q .; then
+            echo "::error::go.mod/go.sum out of sync —" \
+              "run 'go mod tidy' and commit"
+            git diff -- go.mod go.sum || true
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Extra repository-specific checks
+        if: inputs.extra-commands != ''
+        run: ${{ inputs.extra-commands }}
+
+      - name: Test with coverage (race)
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Upload coverage artifact
+        if: inputs.coverage-artifact == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Use canonical golangci config
+        run: >-
+          cp .golangci.yml .golangci.ci.yml 2>/dev/null || echo "{}" >
+          .golangci.ci.yml
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ inputs.golangci-version }}
+          args: --config .golangci.ci.yml
+
+      - name: Build
+        run: ${{ inputs.build-command }}
+
+      - name: Govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  dependency-review:
+    # Supply-chain check for changed dependencies. Runs on pull_request
+    # events only (requires base/head refs); auto-skips otherwise.
+    if: github.event_name == 'pull_request'
+    name: lib-quality / dependency-review
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
