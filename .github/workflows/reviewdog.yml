@@ -32,11 +32,11 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Run golangci-lint
         if: ${{ inputs.golangci-lint }}
-        uses: reviewdog/action-golangci-lint@v2
+        uses: reviewdog/action-golangci-lint@c76cceaaab89abe74e649d2e34c6c9adc26662d2
         with:
           reporter: github-pr-review
           level: ${{ inputs.level }}
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run misspell
         if: ${{ inputs.misspell }}
-        uses: reviewdog/action-misspell@v1
+        uses: reviewdog/action-misspell@d6429416b12b09b4e2768307d53bef58d172e962
         with:
           reporter: github-pr-review
           level: ${{ inputs.level }}
@@ -52,7 +52,7 @@ jobs:
 
       - name: Run shellcheck
         if: ${{ inputs.shellcheck }}
-        uses: reviewdog/action-shellcheck@v1
+        uses: reviewdog/action-shellcheck@0722bbdb0d47f04c1b53b8734d2422ac63a45ec6
         with:
           reporter: github-pr-review
           level: ${{ inputs.level }}

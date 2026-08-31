@@ -27,10 +27,10 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Run gosec
-        uses: securego/gosec@v2.28.0
+        uses: securego/gosec@9e75c0576c9878035d4221392108d458abe10fc3
         with:
           args: >
             -severity ${{ inputs.severity }}

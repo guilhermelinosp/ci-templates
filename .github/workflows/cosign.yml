@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad
 
       - name: Install buildah
         run: sudo apt-get update && sudo apt-get install -y buildah
