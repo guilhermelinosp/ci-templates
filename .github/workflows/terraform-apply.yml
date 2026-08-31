@@ -49,18 +49,18 @@ jobs:
     outputs:
       plan-exitcode: ${{ steps.plan.outputs.exitcode }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ inputs.aws-role-to-assume != '' }}
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ inputs.aws-role-to-assume }}
           role-session-name: terraform-plan-${{ github.run_id }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform-version }}
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
@@ -78,7 +78,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload plan
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: tfplan-${{ inputs.environment }}
           path: ${{ inputs.dir }}/tfplan
@@ -91,24 +91,24 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ inputs.aws-role-to-assume != '' }}
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
         with:
           role-to-assume: ${{ inputs.aws-role-to-assume }}
           role-session-name: terraform-apply-${{ github.run_id }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Download plan
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: tfplan-${{ inputs.environment }}
           path: ${{ inputs.dir }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform-version }}
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}

@@ -28,12 +28,12 @@ jobs:
   promote:
     runs-on: ${{ inputs.runner }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -67,7 +67,7 @@ jobs:
 
       - name: Create GitHub Release
         if: inputs.version != ''
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           tag_name: v${{ inputs.version }}
           name: v${{ inputs.version }}

@@ -26,10 +26,10 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Nuclei scan
-        uses: projectdiscovery/nuclei-action@v3
+        uses: projectdiscovery/nuclei-action@a4ae23f2522c29f17a696be94fea5f394ac6843f
         with:
           target: ${{ inputs.target-url }}
           severity: ${{ inputs.severity }}
