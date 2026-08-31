@@ -25,13 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # semgrep-action@v1 has a broken `args` passthrough (exec: "--config");
+      # run the semgrep CLI directly instead. .github is excluded because the
+      # workflows are scanned by analyze(actions) separately.
       - name: Run semgrep
         id: semgrep
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: ${{ inputs.config }}
-          severity: ${{ inputs.severity }}
-          sarif_file: semgrep.sarif
+        run: |
+          pip install --quiet --break-system-packages semgrep
+          severity_args=""
+          for s in $(echo "${{ inputs.severity }}" | tr ',' ' '); do
+            severity_args="$severity_args --severity $s"
+          done
+          semgrep --config "${{ inputs.config }}" $severity_args --exclude .github --sarif-output semgrep.sarif
 
       - name: Upload SARIF
         if: always()
