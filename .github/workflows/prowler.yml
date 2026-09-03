@@ -37,7 +37,7 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Prowler scan
-        uses: prowler-cloud/prowler@5.39.1
+        uses: prowler-cloud/prowler@5.40.0
         with:
           args: >
             -M sarif
