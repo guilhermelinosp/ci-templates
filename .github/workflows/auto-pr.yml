@@ -1,7 +1,11 @@
 name: auto-pr
 
 on:
-  workflow_call:
+  push:
+    branches:
+      - "feat/**"
+      - "fix/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -9,66 +13,5 @@ permissions:
 
 jobs:
   create-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 0
+    uses: guilhermelinosp/templates/.github/workflows/auto-pr.yml@main
 
-      - name: Create or update PR to main
-        id: create-pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          BRANCH="${{ github.ref_name }}"
-
-          echo "Branch: $BRANCH"
-          echo "Event: ${{ github.event_name }}"
-
-          # Skip main branch
-          if [ "$BRANCH" = "main" ]; then
-            echo "Branch is main — skipping"
-            echo "pr_number=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Check if PR already exists
-          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
-          if [ -n "$EXISTING" ]; then
-            echo "PR #$EXISTING already exists for $BRANCH — updating"
-            gh pr edit "$EXISTING" \
-              --body "Auto-generated PR from \`$BRANCH\`." || true
-            echo "pr_number=$EXISTING" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Get first commit as title (fallback)
-          git fetch origin main 2>/dev/null || true
-          TITLE=$(git log --format="%s" origin/main..HEAD 2>/dev/null | tail -1 || echo "")
-          if [ -z "$TITLE" ]; then
-            TITLE="chore: auto PR from $BRANCH"
-          fi
-
-          # Check if there are new commits
-          COMMITS=$(git log --oneline origin/main..HEAD 2>/dev/null | wc -l)
-          if [ "$COMMITS" -eq 0 ]; then
-            echo "No new commits — skipping"
-            echo "pr_number=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Create PR
-          BODY=$(cat <<-EOF
-          Auto-generated PR from \`$BRANCH\`.
-          EOF
-          )
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "$TITLE" \
-            --body "$BODY" > /tmp/pr-url.txt 2>&1 || echo "Could not create PR (may already exist)"
-          PR_NUMBER=$(grep -oP '/pull/\K[0-9]+' /tmp/pr-url.txt || echo "")
-          if [ -n "$PR_NUMBER" ]; then
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          fi
