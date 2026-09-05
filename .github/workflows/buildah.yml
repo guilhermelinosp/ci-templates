@@ -2,7 +2,7 @@ name: buildah
 
 # Builds and pushes container images using buildah
 # Secrets: GITHUB_TOKEN (auto), GHCR_PAT (optional)
-# Inputs: runner (default: ubuntu-latest)
+# Inputs: runner (default: ubuntu-latest), version (required)
 
 on:
   workflow_call:
@@ -10,6 +10,9 @@ on:
       runner:
         required: false
         default: ubuntu-latest
+        type: string
+      version:
+        required: true
         type: string
     outputs:
       image:
@@ -34,22 +37,32 @@ jobs:
           echo "$TOKEN" | buildah login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build image
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          SHA="${GITHUB_SHA::7}"
           buildah build \
+            -t "${IMG}:${VERSION}" \
+            -t "${IMG}:${SHA}" \
             -t "${IMG}:latest" \
-            -t "${IMG}:${GITHUB_SHA::7}" \
             .
 
       - name: Push image
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          SHA="${GITHUB_SHA::7}"
+          buildah push "${IMG}:${VERSION}"
+          buildah push "${IMG}:${SHA}"
           buildah push "${IMG}:latest"
-          buildah push "${IMG}:${GITHUB_SHA::7}"
 
       - name: Export digest
         id: export
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
-          DIGEST=$(skopeo inspect --format '{{.Digest}}' "docker://${IMG}:latest")
+          DIGEST=$(skopeo inspect --format '{{.Digest}}' "docker://${IMG}:${VERSION}")
           echo "image=${IMG}@${DIGEST}" >> $GITHUB_OUTPUT
