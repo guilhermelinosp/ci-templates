@@ -113,6 +113,8 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.semver.outputs.tag }}
+          REPO: ${{ github.repository }}
         run: |
           TAG="${{ steps.semver.outputs.tag }}"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
