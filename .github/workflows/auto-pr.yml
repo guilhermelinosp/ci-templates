@@ -19,6 +19,7 @@ jobs:
         id: create-pr
         env:
           GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           BRANCH="${{ github.ref_name }}"
@@ -34,10 +35,11 @@ jobs:
           fi
 
           # Check if PR already exists
-          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          EXISTING=$(gh pr list --repo "$REPOSITORY" --head "$BRANCH" \
+            --state open --json number --jq '.[0].number' 2>/dev/null || true)
           if [ -n "$EXISTING" ]; then
             echo "PR #$EXISTING already exists for $BRANCH — updating"
-            gh pr edit "$EXISTING" \
+            gh pr edit "$EXISTING" --repo "$REPOSITORY" \
               --body "Auto-generated PR from \`$BRANCH\`." || true
             echo "pr_number=$EXISTING" >> $GITHUB_OUTPUT
             exit 0
@@ -63,11 +65,12 @@ jobs:
           Auto-generated PR from \`$BRANCH\`.
           EOF
           )
-          gh pr create \
+          gh pr create --repo "$REPOSITORY" \
             --base main \
             --head "$BRANCH" \
             --title "$TITLE" \
-            --body "$BODY" > /tmp/pr-url.txt 2>&1 || echo "Could not create PR (may already exist)"
+            --body "$BODY" > /tmp/pr-url.txt 2>&1
+          cat /tmp/pr-url.txt
           PR_NUMBER=$(grep -oP '/pull/\K[0-9]+' /tmp/pr-url.txt || echo "")
           if [ -n "$PR_NUMBER" ]; then
             echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
