@@ -31,7 +31,7 @@ jobs:
 
       - name: OWASP ZAP baseline
         if: ${{ inputs.scan-type == 'baseline' }}
-        uses: zaproxy/action-baseline@v0.14.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ inputs.target-url }}
           fail_action: true
