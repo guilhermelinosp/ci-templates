@@ -35,10 +35,8 @@ jobs:
           fi
 
           # Check if PR already exists
-          OWNER="${REPOSITORY%%/*}"
-          EXISTING=$(gh api --method GET "repos/$REPOSITORY/pulls" \
-            -f state=open -f head="$OWNER:$BRANCH" -f base=main \
-            --jq '.[0].number // empty')
+          EXISTING=$(gh pr list --repo "$REPOSITORY" --head "$BRANCH" \
+            --state open --json number --jq '.[0].number' 2>/dev/null || true)
           if [ -n "$EXISTING" ]; then
             echo "PR #$EXISTING already exists for $BRANCH — updating"
             gh pr edit "$EXISTING" --repo "$REPOSITORY" \
